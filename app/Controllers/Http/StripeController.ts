@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Env from '@ioc:Adonis/Core/Env'
 import Mail from '@ioc:Adonis/Addons/Mail'
@@ -24,6 +25,7 @@ export default class StripeController {
       apiVersion: Env.get('STRIPE_API_VERSION', '2020-08-27'),
     })
 
+    /**  */
     const session = await stripeClient.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],

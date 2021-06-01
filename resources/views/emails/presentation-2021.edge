@@ -1,0 +1,141 @@
+<table style="max-width:600px">
+  <tbody>
+    <tr>
+      <td>
+        <img src="https://newcastlecityjuniors.co.uk/android-chrome-192x192.png" style="margin-bottom:20px">
+        <h1>Presentation 2020-21 Tickets</h1>
+        <p>Thank you for purchasing your ticket(s) for Newcastle City Juniors' Presentation 2020-21 season.</p>
+        <p>Please accept this email as proof of your purchase. A summary of the tickets you have purchased is below.</p>
+
+        <table style="border-collapse:collapse;width:100%">
+          <thead>
+            <tr>
+              <th style="text-align:left">Attendee</th>
+              <th style="text-align:left">Ticket Type</th>
+              <th style="text-align:left">Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if(metadata.adult_name_1)
+              <tr>
+                <td>{{ metadata.adult_name_1 }}</td>
+                <td>Adult</td>
+                <td>£3.00</td>
+              </tr>
+            @end
+            @if(metadata.adult_name_2)
+              <tr>
+                <td>{{ metadata.adult_name_2 }}</td>
+                <td>Adult</td>
+                <td>£3.00</td>
+              </tr>
+            @end
+            @if(metadata.adult_name_3)
+              <tr>
+                <td>{{ metadata.adult_name_3 }}</td>
+                <td>Adult</td>
+                <td>£3.00</td>
+              </tr>
+            @end
+            @if(metadata.adult_name_4)
+            <tr>
+              <td>{{ metadata.adult_name_4 }}</td>
+              <td>Adult</td>
+              <td>£3.00</td>
+            </tr>
+            @end
+            @if(metadata.adult_name_5)
+            <tr>
+              <td>{{ metadata.adult_name_5 }}</td>
+              <td>Adult</td>
+              <td>£3.00</td>
+            </tr>
+            @end
+            @if(metadata.child_name_1)
+              <tr>
+                <td>{{ metadata.child_name_1 }}</td>
+                <td>Child</td>
+                <td>£1.00</td>
+              </tr>
+            @end
+            @if(metadata.child_name_2)
+              <tr>
+                <td>{{ metadata.child_name_2 }}</td>
+                <td>Child</td>
+                <td>£1.00</td>
+              </tr>
+            @end
+            @if(metadata.child_name_3)
+              <tr>
+                <td>{{ metadata.child_name_3 }}</td>
+                <td>Child</td>
+                <td>£1.00</td>
+              </tr>
+            @end
+            @if(metadata.child_name_4)
+            <tr>
+              <td>{{ metadata.child_name_4 }}</td>
+              <td>Child</td>
+              <td>£1.00</td>
+            </tr>
+            @end
+            @if(metadata.child_name_5)
+            <tr>
+              <td>{{ metadata.child_name_5 }}</td>
+              <td>Child</td>
+              <td>£1.00</td>
+            </tr>
+            @end
+            @if(metadata.player_name_1)
+              <tr>
+                <td>{{ metadata.player_name_1 }}</td>
+                <td>Player</td>
+                <td>£0.00</td>
+              </tr>
+            @end
+            @if(metadata.player_name_2)
+              <tr>
+                <td>{{ metadata.player_name_2 }}</td>
+                <td>Player</td>
+                <td>£0.00</td>
+              </tr>
+            @end
+            @if(metadata.player_name_3)
+              <tr>
+                <td>{{ metadata.player_name_3 }}</td>
+                <td>Player</td>
+                <td>£0.00</td>
+              </tr>
+            @end
+            <tr>
+              <td colspan="2" class="text-align:right"><strong>TOTAL</strong></td>
+              <td><strong>£{{ parseFloat(metadata.total_cost / 100).toFixed(2) }}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p>You will be required to show this email before entering the presentation as this acts as your ticket(s) for players, adults and children.</p>
+        <p>All players <strong>MUST</strong> wear their home strip (Black/White Top, White Shorts/Socks) on the day of the presentation. All players will be asked to hand in their Black/White Top at the end of presentation by their team coaches so please also bring a change of top for your child. White Shorts/Socks can be kept.</p>
+        <p>Hot/cold food, refreshments and alcoholic beverages will be available on the day.</p>
+        <p>You have any questions about our presentation day then please contact your child's team coach.</p>
+
+        <h2>Timetable</h2>
+        <p>Football Development</p>
+        <ul>
+          <li>Doors Open: 10:30am</li>
+          <li>Presentation: 11:00am - 12:00pm</li>
+        </ul>
+        <p>Mini Soccer (Under 7s - Under 10s)</p>
+        <ul>
+          <li>Doors Open: 12:30pm</li>
+          <li>Presentation: 1:00pm - 3:30pm</li>
+        </ul>
+        <p>Juniors (Under 11s - Under 16s)</p>
+        <ul>
+          <li>Doors Open: 5:00pm</li>
+          <li>Presentation: 5:30pm - 8:00pm</li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>

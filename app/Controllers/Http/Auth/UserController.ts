@@ -43,10 +43,7 @@ export default class UserController {
           .from('info@newcastlecityjuniors.co.uk', 'Newcastle City Juniors')
           .to(user.email)
           .subject('Verify email address')
-          .htmlView('emails/email-verification', {
-            user,
-            environment: Env.get('NODE_ENV'),
-          })
+          .htmlView('emails/email-verification', { user })
       })
 
       return response.ok({

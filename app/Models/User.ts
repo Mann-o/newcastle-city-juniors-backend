@@ -79,7 +79,7 @@ export default class User extends BaseModel {
   public rememberMeToken: string | null
 
   @column()
-  public stripeCustomerId: string | null | undefined
+  public stripeCustomerId: string | undefined
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime

@@ -3,6 +3,7 @@ import Env from '@ioc:Adonis/Core/Env'
 import Stripe from 'stripe'
 
 import Player from 'App/Models/Player'
+import User from 'App/Models/User'
 import CreatePlayerValidator from 'App/Validators/CreatePlayerValidator'
 
 export default class PlayerController {
@@ -12,9 +13,15 @@ export default class PlayerController {
     try {
       const authenticatedUser = auth.use('api').user!
 
+      const user = await User.query().where('id', authenticatedUser.id).first()
+
+      if (!user) {
+        throw new Error()
+      }
+
       const player = await Player.create({
         ...request.body(),
-        userId: authenticatedUser.id,
+        userId: user.id,
       })
 
       const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
@@ -31,7 +38,7 @@ export default class PlayerController {
       const paymentIntent = await stripeClient.paymentIntents.create({
         amount: cost,
         currency: 'gbp',
-        customer: authenticatedUser.stripeCustomerId,
+        customer: user.stripeCustomerId,
       })
 
       player.stripePaymentIntentId = paymentIntent.id
@@ -43,8 +50,7 @@ export default class PlayerController {
         message: 'Player created successfully',
         data: player,
       })
-    } catch (error) {
-      console.log(error)
+    } catch {
       return response.badRequest({
         status: 'Bad Request',
         code: 400,

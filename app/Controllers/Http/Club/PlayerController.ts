@@ -21,7 +21,7 @@ export default class PlayerController {
         apiVersion: '2020-08-27',
       })
 
-      let cost
+      let cost: number
       if (player.sex === 'male') {
         cost = player.membershipFeeOption === 'upfront' ? 30000 : 5700
       } else {

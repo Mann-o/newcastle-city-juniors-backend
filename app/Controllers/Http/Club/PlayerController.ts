@@ -21,8 +21,15 @@ export default class PlayerController {
         apiVersion: '2020-08-27',
       })
 
+      let cost
+      if (player.sex === 'male') {
+        cost = player.membershipFeeOption === 'upfront' ? 30000 : 5700
+      } else {
+        cost = player.membershipFeeOption === 'upfront' ? 20000 : 4000
+      }
+
       const paymentIntent = await stripeClient.paymentIntents.create({
-        amount: player.membershipFeeOption === 'upfront' ? 30000 : 5700,
+        amount: cost,
         currency: 'gbp',
         customer: authenticatedUser.stripeCustomerId,
       })
@@ -49,11 +56,7 @@ export default class PlayerController {
   public async getPlayer({ auth, params, response }: HttpContextContract) {
     const user = auth.use('api').user!
 
-    const player = await Player.query()
-      .where('userId', user.id)
-      .andWhere('id', params.playerId)
-      .preload('team', team => team.preload('ageGroup'))
-      .first()
+    const player = await Player.query().where('userId', user.id).andWhere('id', params.playerId).preload('ageGroup').first()
 
     const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
       apiVersion: '2020-08-27',
@@ -82,9 +85,7 @@ export default class PlayerController {
   public async getAllPlayers({ auth, response }: HttpContextContract) {
     const user = auth.use('api').user!
 
-    const players = await Player.query()
-      .where('userId', user.id)
-      .preload('team', team => team.preload('ageGroup'))
+    const players = await Player.query().where('userId', user.id).preload('ageGroup')
 
     return response.ok({
       status: 'OK',

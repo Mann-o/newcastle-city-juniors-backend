@@ -3,6 +3,7 @@ import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm'
 
 import Team from 'App/Models/Team'
 import User from 'App/Models/User'
+import AgeGroup from 'App/Models/AgeGroup'
 
 export default class Player extends BaseModel {
   @column({ isPrimary: true })
@@ -49,6 +50,12 @@ export default class Player extends BaseModel {
 
   @belongsTo(() => Team)
   public team: BelongsTo<typeof Team>
+
+  @column()
+  public ageGroupId: number
+
+  @belongsTo(() => AgeGroup)
+  public ageGroup: BelongsTo<typeof AgeGroup>
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime

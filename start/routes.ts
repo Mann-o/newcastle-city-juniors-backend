@@ -22,7 +22,12 @@ Route.group(() => {
     // Teams
     Route.group(() => {
       Route.get('/', 'Club/TeamController.getAllTeams')
-    }).prefix('teams')
+    }).prefix('/teams')
+
+    // Age Goups
+    Route.group(() => {
+      Route.get('/', 'Club/AgeGroupController.getAllAgeGroups')
+    }).prefix('/age-groups')
   })
     .prefix('/club')
     .middleware('auth')

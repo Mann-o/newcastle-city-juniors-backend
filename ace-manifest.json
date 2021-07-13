@@ -24,6 +24,18 @@
       "aliases": [],
       "flags": []
     },
+    "db:refresh": {
+      "settings": {
+        "loadApp": true,
+        "stayAlive": false
+      },
+      "commandPath": "./commands/DbRefresh",
+      "commandName": "db:refresh",
+      "description": "Runs a full migration rollback, re-runs migrations and runs all seeders",
+      "args": [],
+      "aliases": [],
+      "flags": []
+    },
     "dump:rcfile": {
       "settings": {},
       "commandPath": "@adonisjs/core/commands/DumpRc",

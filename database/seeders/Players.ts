@@ -19,7 +19,13 @@ export default class PlayerSeeder extends BaseSeeder {
     })
 
     const paymentIntentUpfront1 = await stripeClient.paymentIntents.create({
-      amount: 30000,
+      amount: 20000,
+      currency: 'gbp',
+      customer: user1.stripeCustomerId,
+    })
+
+    const paymentIntentSubscription1 = await stripeClient.paymentIntents.create({
+      amount: 4000,
       currency: 'gbp',
       customer: user1.stripeCustomerId,
     })
@@ -30,38 +36,48 @@ export default class PlayerSeeder extends BaseSeeder {
       customer: user2.stripeCustomerId,
     })
 
-    const paymentIntentSubscription = await stripeClient.paymentIntents.create({
+    const paymentIntentSubscription2 = await stripeClient.paymentIntents.create({
       amount: 5700,
       currency: 'gbp',
       customer: user2.stripeCustomerId,
     })
 
-    await user1.related('players').create({
-      fullName: `${faker.name.firstName()} ${faker.name.lastName()}`,
-      dateOfBirth: DateTime.fromISO('2013-03-16'),
-      sex: faker.helpers.randomize(['male', 'female']),
-      teamId: 8,
-      membershipFeeOption: 'upfront',
-      stripePaymentIntentId: paymentIntentUpfront1.id,
-    })
+    await user1.related('players').createMany([
+      {
+        fullName: `${faker.name.firstName()} ${faker.name.lastName()}`,
+        dateOfBirth: DateTime.fromISO('2010-07-27'),
+        sex: 'female',
+        ageGroupId: 2,
+        membershipFeeOption: 'upfront',
+        stripePaymentIntentId: paymentIntentUpfront1.id,
+      },
+      {
+        fullName: `${faker.name.firstName()} ${faker.name.lastName()}`,
+        dateOfBirth: DateTime.fromISO('2013-03-16'),
+        sex: 'female',
+        ageGroupId: 2,
+        membershipFeeOption: 'upfront',
+        stripePaymentIntentId: paymentIntentSubscription1.id,
+      },
+    ])
 
     await user2.related('players').createMany([
       {
         fullName: `${faker.name.firstName()} ${faker.name.lastName()}`,
         dateOfBirth: DateTime.fromISO('2010-07-27'),
-        sex: faker.helpers.randomize(['male', 'female']),
-        teamId: 17,
+        sex: 'male',
+        ageGroupId: 4,
         membershipFeeOption: 'upfront',
         stripePaymentIntentId: paymentIntentUpfront2.id,
       },
       {
         fullName: `${faker.name.firstName()} ${faker.name.lastName()}`,
         dateOfBirth: DateTime.fromISO('2013-03-16'),
-        sex: faker.helpers.randomize(['male', 'female']),
-        teamId: 8,
+        sex: 'male',
+        ageGroupId: 8,
         medicalConditions: 'Allergic to Pineapple',
         membershipFeeOption: 'subscription',
-        stripePaymentIntentId: paymentIntentSubscription.id,
+        stripePaymentIntentId: paymentIntentSubscription2.id,
       },
     ])
   }

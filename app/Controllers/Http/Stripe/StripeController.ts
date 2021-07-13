@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Env from '@ioc:Adonis/Core/Env'
 import Mail from '@ioc:Adonis/Addons/Mail'
@@ -7,7 +6,7 @@ import Stripe from 'stripe'
 export default class StripeController {
   public async getPresentation2021EventPaymentIntent({ response }: HttpContextContract) {
     const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
-      apiVersion: Env.get('STRIPE_API_VERSION', '2020-08-27'),
+      apiVersion: '2020-08-27',
     })
 
     const paymentIntent = await stripeClient.paymentIntents.create({
@@ -22,7 +21,7 @@ export default class StripeController {
 
   public async createCheckout({ request, response }: HttpContextContract) {
     const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
-      apiVersion: Env.get('STRIPE_API_VERSION', '2020-08-27'),
+      apiVersion: '2020-08-27',
     })
 
     /**  */
@@ -30,6 +29,8 @@ export default class StripeController {
       mode: 'payment',
       payment_method_types: ['card'],
       ...request.body(),
+      cancel_url: '',
+      success_url: '',
     })
 
     response.send({
@@ -41,7 +42,6 @@ export default class StripeController {
     const { data, type } = request.body()
 
     if (type === 'checkout.session.completed') {
-      console.log(request.body())
       if (data?.object?.metadata?.event === 'presentation-2021') {
         const email = data.object.customer_email
         const metadata = {
@@ -49,10 +49,8 @@ export default class StripeController {
           total_cost: data.object.amount_total,
         }
 
-        console.log({ email, metadata })
-
         // send email!
-        Mail.send((message) => {
+        Mail.send(message => {
           message
             .from('info@newcastlecityjuniors.co.uk', 'Newcastle City Juniors')
             .to(email)
@@ -63,5 +61,23 @@ export default class StripeController {
     }
 
     response.ok({ status: 'success' })
+  }
+
+  public async getPaymentsForUser({ auth, response }: HttpContextContract) {
+    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+      apiVersion: '2020-08-27',
+    })
+
+    const authenticatedUser = auth.use('api').user!
+
+    const payments = await stripeClient.charges.list({
+      customer: authenticatedUser.stripeCustomerId,
+    })
+
+    return response.ok({
+      status: 'OK',
+      code: 200,
+      data: payments,
+    })
   }
 }

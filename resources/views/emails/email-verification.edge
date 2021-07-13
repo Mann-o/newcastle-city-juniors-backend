@@ -1,6 +1,5 @@
-@if(environment === 'production')
-  @set('domain', 'https://www.newcastlecityjuniors.co.uk')
-@else
+@set('domain', 'https://www.newcastlecityjuniors.co.uk')
+@if(environment !== 'production')
   @set('domain', 'http://localhost:3000')
 @end
 <!-- https://mjml.io/try-it-live/DJk-SKBwi0g -->

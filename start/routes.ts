@@ -6,7 +6,7 @@ Route.group(() => {
     Route.post('/login', 'Auth/UserController.login')
     Route.post('/register', 'Auth/UserController.register')
     Route.post('/verify-email', 'Auth/UserController.verifyEmail')
-    Route.get('/user', 'Auth/Usercontroller.getAuthenticatedUser').middleware('auth')
+    Route.get('/user', 'Auth/UserController.getAuthenticatedUser').middleware('auth')
     Route.post('/logout', 'Auth/UserController.logout').middleware('auth')
   }).prefix('/auth')
 

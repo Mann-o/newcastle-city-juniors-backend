@@ -2,6 +2,7 @@ import { AuthConfig } from '@ioc:Adonis/Addons/Auth'
 
 const authConfig: AuthConfig = {
   guard: 'api',
+
   guards: {
     api: {
       driver: 'oat',
@@ -12,6 +13,17 @@ const authConfig: AuthConfig = {
         redisConnection: 'local',
         foreignKey: 'user_id',
       },
+
+      provider: {
+        driver: 'database',
+        identifierKey: 'id',
+        uids: ['email'],
+        usersTable: 'users',
+      },
+    },
+
+    basic: {
+      driver: 'basic',
 
       provider: {
         driver: 'database',

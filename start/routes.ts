@@ -6,8 +6,8 @@ Route.group(() => {
     Route.post('/login', 'Auth/UserController.login')
     Route.post('/register', 'Auth/UserController.register')
     Route.post('/verify-email', 'Auth/UserController.verifyEmail')
-    Route.get('/user', 'Auth/UserController.getAuthenticatedUser').middleware('auth')
-    Route.post('/logout', 'Auth/UserController.logout').middleware('auth')
+    Route.get('/user', 'Auth/UserController.getAuthenticatedUser').middleware('auth:api')
+    Route.post('/logout', 'Auth/UserController.logout').middleware('auth:api')
   }).prefix('/auth')
 
   // Club routes
@@ -30,7 +30,7 @@ Route.group(() => {
     }).prefix('/age-groups')
   })
     .prefix('/club')
-    .middleware('auth')
+    .middleware('auth:api')
 
   // Stripe routes
   Route.group(() => {
@@ -40,6 +40,11 @@ Route.group(() => {
 
     Route.post('/create-checkout', 'Stripe/StripeController.createCheckout')
     Route.post('/webhook-handler', 'Stripe/StripeController.handleCheckoutWebhook')
-    Route.get('/get-payments-for-user', 'Stripe/StripeController.getPaymentsForUser').middleware('auth')
+    Route.get('/get-payments-for-user', 'Stripe/StripeController.getPaymentsForUser').middleware('auth:api')
   }).prefix('/stripe')
+
+  // Helper routes
+  Route.group(() => {
+    Route.get('/payment-schedule-2021', 'Helpers/HelperController.getPaymentSchedule2021').middleware('auth:basic')
+  }).prefix('/helpers')
 }).prefix('/api/v1')

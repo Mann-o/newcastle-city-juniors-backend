@@ -1,0 +1,55 @@
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Payment Schedule - 2021</title>
+  <style>
+    body {
+      font-family: sans-serif;
+    }
+
+    th, td {
+      padding: 10px 0;
+    }
+
+    th {
+      text-align: left;
+    }
+
+    th:first-child {
+      padding-right: 20px;
+    }
+
+    td {
+      vertical-align: top;
+    }
+  </style>
+</head>
+<body>
+  <table>
+    <thead>
+      <tr>
+        <th>Age Group</th>
+        <th>Players</th>
+      </tr>
+    </thead>
+    <tbody>
+      @each ((players, ageGroup) in ageGroups)
+        <tr>
+          <td>{{ ageGroup }}</td>
+          <td>
+            @each (player in players)
+              <span>{{ player.name }}</span>
+              @if (player.paid)
+                <span> - Paid ({{ player.amountPaid }})
+              @else
+                <span> - <span style="color:#ff0000">Not Paid</span></span>
+              @end
+              <br>
+            @end
+          </td>
+        </tr>
+      @end
+    </tbody>
+  <table>
+</body>
+</html>

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Env from '@ioc:Adonis/Core/Env'
 
@@ -14,7 +13,7 @@ export default class HelperController {
       apiVersion: '2020-08-27',
     })
 
-    for (const player of players as Array<any>) {
+    for (const player of players as any[]) {
       const paymentIntent = await stripeClient.paymentIntents.retrieve(player.stripePaymentIntentId)
 
       if (paymentIntent.status === 'succeeded') {
@@ -25,7 +24,7 @@ export default class HelperController {
       }
     }
 
-    const ageGroups = players.reduce((acc, player) => {
+    const ageGroups = players.reduce((acc, player: any) => {
       const mappedPlayer = {
         name: player.fullName,
         paid: player.paid,
@@ -44,11 +43,5 @@ export default class HelperController {
     }, {})
 
     return view.render('payment-schedule', { ageGroups })
-
-    // return response.ok({
-    //   status: 'OK',
-    //   code: 200,
-    //   data: ageGroups,
-    // })
   }
 }

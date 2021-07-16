@@ -15,7 +15,6 @@ export default class CreatePlayerValidator {
   public messages = {
     'fullName.string': `Field '{{ field }}' must be a string`,
     'fullName.required': `Field '{{ field }}' is required`,
-    'fullName.alpha': `Field '{{ field }}' must have a-z characters only`,
     'fullName.maxLength': `Field '{{ field }}' must be a maximum of 255 characters`,
     'dateOfBirth.date': `Field '{{ field }}' must be a date in the format 'yyyy-mm-dd'`,
     'sex.enum': `Field '{{ field }}' must be 'male' or 'female'`,

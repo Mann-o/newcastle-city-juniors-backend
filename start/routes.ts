@@ -8,6 +8,8 @@ Route.group(() => {
     Route.post('/verify-email', 'Auth/UserController.verifyEmail')
     Route.get('/user', 'Auth/UserController.getAuthenticatedUser').middleware('auth:api')
     Route.post('/logout', 'Auth/UserController.logout').middleware('auth:api')
+    Route.post('/password-reset/start', 'Auth/UserController.startResetPassword')
+    Route.post('/password-reset/finish', 'Auth/UserController.finishResetPassword')
   }).prefix('/auth')
 
   // Club routes

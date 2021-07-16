@@ -10,6 +10,7 @@ import Stripe from 'stripe'
 import User from 'App/Models/User'
 import CreateUserValidator from 'App/Validators/CreateUserValidator'
 import VerifyEmailValidator from 'App/Validators/VerifyEmailValidator'
+import ResetPasswordValidator from 'App/Validators/ResetPasswordValidator'
 import CannotVerifyEmailException from 'App/Exceptions/CannotVerifyEmailException'
 import EmailNotVerifiedException from 'App/Exceptions/EmailNotVerifiedException'
 
@@ -67,10 +68,7 @@ export default class UserController {
 
     if (email !== null && password !== null) {
       try {
-        const user = await User.query()
-          .select(['id', 'email', 'alternate_email', 'last_logged_in', 'email_verified'])
-          .whereRaw('lower(email) = ?', email.toLowerCase())
-          .first()
+        const user = await User.query().whereRaw('lower(email) = ?', email.toLowerCase()).first()
 
         if (!user) {
           throw InvalidCredentialsException
@@ -85,6 +83,7 @@ export default class UserController {
         })
 
         user.lastLoggedIn = DateTime.now()
+        user.resetPasswordToken = null
         await user.save()
 
         return response.ok({
@@ -183,28 +182,80 @@ export default class UserController {
     }
   }
 
-  // public async beginResetPassword({ request, response }: HttpContextContract) {
-  //   try {
-  //     const email = request.input('email').toLowerCase()
+  public async startResetPassword({ request, response }: HttpContextContract) {
+    try {
+      const email = request.input('email').toLowerCase()
 
-  //     const user = await User.query().whereRaw('lower(email) = ?', email)
+      const user = await User.query().whereRaw('lower(email) = ?', email).first()
 
-  //     if (!user) {
-  //       return response.notFound({
-  //         status: 'Not Found',
-  //         code: 404,
-  //         message: 'User not found',
-  //       })
-  //     }
+      if (!user) {
+        return response.ok({
+          status: 'OK',
+          code: 200,
+          message: 'Reset password request received',
+        })
+      }
 
-  //     user.
-  //   } catch (error) {
-  //     console.log(error)
-  //     return response.badRequest({
-  //       status: 'Bad Request',
-  //       code: 400,
-  //       message: 'Unable to begin reset password process',
-  //     })
-  //   }
-  // }
+      user.resetPasswordToken = cuid()
+      await user.save()
+
+      Mail.send(message => {
+        message
+          .from('info@newcastlecityjuniors.co.uk', 'Newcastle City Juniors')
+          .to(user.email.toLowerCase())
+          .subject('Reset password')
+          .htmlView('emails/reset-password', { user })
+      })
+
+      return response.ok({
+        status: 'OK',
+        code: 200,
+        message: 'Reset password request received',
+      })
+    } catch (error) {
+      console.log(error)
+      return response.badRequest({
+        status: 'Bad Request',
+        code: 400,
+        message: 'Unable to begin reset password process',
+      })
+    }
+  }
+
+  public async finishResetPassword({ request, response }: HttpContextContract) {
+    await request.validate(ResetPasswordValidator)
+
+    const email = request.input('email').toLowerCase()
+    const resetToken = request.input('resetToken')
+    const newPassword = request.input('newPassword')
+
+    try {
+      const user = await User.query().whereRaw('lower(email) = ?', email).andWhere('reset_password_token', resetToken).first()
+
+      if (!user) {
+        return response.notFound({
+          status: 'Not Found',
+          code: 404,
+          message: 'User not found',
+        })
+      }
+
+      user.resetPasswordToken = null
+      user.password = newPassword
+      await user.save()
+
+      return response.ok({
+        status: 'OK',
+        code: 200,
+        message: 'Password reset successfully',
+      })
+    } catch (error) {
+      console.log(error)
+      return response.badRequest({
+        status: 'Bad Request',
+        code: 400,
+        message: 'Unable to begin reset password process',
+      })
+    }
+  }
 }

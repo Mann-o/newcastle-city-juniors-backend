@@ -48,7 +48,7 @@ export default class CreateUserValidator {
       rules.maxLength(255),
       rules.fieldNotMatch({ comparisonFieldName: 'email' }),
     ]),
-    password: schema.string({}, [rules.minLength(8), rules.maxLength(50), rules.confirmed('passwordConfirmation')]),
+    password: schema.string({}, [rules.minLength(8), rules.maxLength(255), rules.confirmed('passwordConfirmation')]),
   })
 
   public messages = {
@@ -78,7 +78,7 @@ export default class CreateUserValidator {
     'email.email': `Field '{{ field }}' must be a valid email address`,
     'email.maxLength': `Field '{{ field }}' must be a maximum of 255 characters`,
     'email.unique': `Field '{{ field }}' value is already in use`,
-    'email.confirmed': `Field '{{ field }}' must match field {{ field }}Confirmation`,
+    'email.confirmed': `Field '{{ field }}' must match field '{{ field }}Confirmation'`,
     'additionalParentOrGuardian.boolean': `Field '{{ field }}' must be a boolean`,
     'additionalParentOrGuardian.required': `Field '{{ field }}' is required`,
     'alternateTitle.string': `Field '{{ field }}' must be a string`,
@@ -111,6 +111,6 @@ export default class CreateUserValidator {
     'password.required': `Field '{{ field }}' is required`,
     'password.minLength': `Field '{{ field }}' must be at least 8 characters`,
     'password.maxLength': `Field '{{ field }}' must be no more than 50 characters`,
-    'password.confirmed': `Field '{{ field }}' must match field {{ field }}Confirmation`,
+    'password.confirmed': `Field '{{ field }}' must match field '{{ field }}Confirmation'`,
   }
 }

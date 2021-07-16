@@ -2,7 +2,7 @@ import { schema, rules } from '@ioc:Adonis/Core/Validator'
 
 export default class CreatePlayerValidator {
   public schema = schema.create({
-    fullName: schema.string({ escape: true, trim: true }, [rules.alpha({ allow: ['space', 'dash'] }), rules.maxLength(255)]),
+    fullName: schema.string({ escape: true, trim: true }, [rules.maxLength(255)]),
     dateOfBirth: schema.date({ format: 'yyyy-MM-dd' }),
     sex: schema.enum(['male', 'female'] as const),
     ageGroupId: schema.number(),

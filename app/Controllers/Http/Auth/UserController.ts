@@ -117,7 +117,7 @@ export default class UserController {
     try {
       const user = await User.query()
         .where('email_verified', false)
-        .andWhereRaw('lower(email) = ?')
+        .andWhereRaw('lower(email) = ?', email)
         .andWhere('email_verification_token', verificationToken)
         .first()
 

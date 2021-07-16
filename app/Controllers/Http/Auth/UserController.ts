@@ -34,6 +34,7 @@ export default class UserController {
 
       const user = await User.create({
         ...request.except(['passwordConfirmation', 'emailConfirmation']),
+        email: request.input('email').toLowerCase(),
         stripeCustomerId: id,
         emailVerificationToken: cuid(),
       })
@@ -41,7 +42,7 @@ export default class UserController {
       Mail.send(message => {
         message
           .from('info@newcastlecityjuniors.co.uk', 'Newcastle City Juniors')
-          .to(user.email)
+          .to(user.email.toLowerCase())
           .subject('Verify email address')
           .htmlView('emails/email-verification', { user })
       })
@@ -110,13 +111,13 @@ export default class UserController {
   public async verifyEmail({ request, response }: HttpContextContract) {
     await request.validate(VerifyEmailValidator)
 
-    const email = request.input('email')
+    const email = request.input('email').toLowerCase()
     const verificationToken = request.input('verificationToken')
 
     try {
       const user = await User.query()
         .where('email_verified', false)
-        .andWhereRaw('lower(email) = ?', email)
+        .andWhereRaw('lower(email) = ?')
         .andWhere('email_verification_token', verificationToken)
         .first()
 
@@ -181,4 +182,29 @@ export default class UserController {
       })
     }
   }
+
+  // public async beginResetPassword({ request, response }: HttpContextContract) {
+  //   try {
+  //     const email = request.input('email').toLowerCase()
+
+  //     const user = await User.query().whereRaw('lower(email) = ?', email)
+
+  //     if (!user) {
+  //       return response.notFound({
+  //         status: 'Not Found',
+  //         code: 404,
+  //         message: 'User not found',
+  //       })
+  //     }
+
+  //     user.
+  //   } catch (error) {
+  //     console.log(error)
+  //     return response.badRequest({
+  //       status: 'Bad Request',
+  //       code: 400,
+  //       message: 'Unable to begin reset password process',
+  //     })
+  //   }
+  // }
 }

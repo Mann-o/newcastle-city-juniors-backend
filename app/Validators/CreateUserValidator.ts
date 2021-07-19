@@ -2,9 +2,9 @@ import { schema, rules } from '@ioc:Adonis/Core/Validator'
 
 export default class CreateUserValidator {
   public schema = schema.create({
-    title: schema.string({ escape: true, trim: true }, [rules.alpha(), rules.maxLength(255)]),
-    firstName: schema.string({ escape: true, trim: true }, [rules.alpha(), rules.maxLength(255)]),
-    lastName: schema.string({ escape: true, trim: true }, [rules.alpha(), rules.maxLength(255)]),
+    title: schema.string({ escape: true, trim: true }, [rules.maxLength(255)]),
+    firstName: schema.string({ escape: true, trim: true }, [rules.maxLength(255)]),
+    lastName: schema.string({ escape: true, trim: true }, [rules.maxLength(255)]),
     houseNameOrNumber: schema.string({ escape: true, trim: true }, [rules.maxLength(255)]),
     postcode: schema.string({ escape: true, trim: true }, [rules.maxLength(255)]),
     mobileNumber: schema.string({ escape: true, trim: true }, [rules.maxLength(255)]),
@@ -17,17 +17,14 @@ export default class CreateUserValidator {
     additionalParentOrGuardian: schema.boolean(),
     alternateTitle: schema.string.optional({ escape: true, trim: true }, [
       rules.requiredWhen('additionalParentOrGuardian', 'in', [true, 'true', 1, '1']),
-      rules.alpha(),
       rules.maxLength(255),
     ]),
     alternateFirstName: schema.string.optional({ escape: true, trim: true }, [
       rules.requiredWhen('additionalParentOrGuardian', 'in', [true, 'true', 1, '1']),
-      rules.alpha(),
       rules.maxLength(255),
     ]),
     alternateLastName: schema.string.optional({ escape: true, trim: true }, [
       rules.requiredWhen('additionalParentOrGuardian', 'in', [true, 'true', 1, '1']),
-      rules.alpha(),
       rules.maxLength(255),
     ]),
     alternateHouseNameOrNumber: schema.string.optional({ escape: true, trim: true }, [
@@ -54,15 +51,12 @@ export default class CreateUserValidator {
   public messages = {
     'title.string': `Field '{{ field }}' must be a string`,
     'title.required': `Field '{{ field }}' is required`,
-    'title.alpha': `Field '{{ field }}' must have a-z characters only`,
     'title.maxLength': `Field '{{ field }}' must be a maximum of 255 characters`,
     'firstName.string': `Field '{{ field }}' must be a string`,
     'firstName.required': `Field '{{ field }}' is required`,
-    'firstName.alpha': `Field '{{ field }}' must have a-z characters only`,
     'firstName.maxLength': `Field '{{ field }}' must be a maximum of 255 characters`,
     'lastName.string': `Field '{{ field }}' must be a string`,
     'lastName.required': `Field '{{ field }}' is required`,
-    'lastName.alpha': `Field '{{ field }}' must have a-z characters only`,
     'lastName.maxLength': `Field '{{ field }}' must be a maximum of 255 characters`,
     'houseNameOrNumber.string': `Field '{{ field }}' must be a string`,
     'houseNameOrNumber.required': `Field '{{ field }}' is required`,
@@ -83,15 +77,12 @@ export default class CreateUserValidator {
     'additionalParentOrGuardian.required': `Field '{{ field }}' is required`,
     'alternateTitle.string': `Field '{{ field }}' must be a string`,
     'alternateTitle.requiredWhen': `Field '{{ field }}' is required when field 'additionalParentOrGuardian' is true`,
-    'alternateTitle.alpha': `Field '{{ field }}' must have a-z characters only`,
     'alternateTitle.maxLength': `Field '{{ field }}' must be a maximum of 255 characters`,
     'alternateFirstName.string': `Field '{{ field }}' must be a string`,
     'alternateFirstName.requiredWhen': `Field '{{ field }}' is required when field 'additionalParentOrGuardian' is true`,
-    'alternateFirstName.alpha': `Field '{{ field }}' must have a-z characters only`,
     'alternateFirstName.maxLength': `Field '{{ field }}' must be a maximum of 255 characters`,
     'alternateLastName.string': `Field '{{ field }}' must be a string`,
     'alternateLastName.requiredWhen': `Field '{{ field }}' is required when field 'additionalParentOrGuardian' is true`,
-    'alternateLastName.alpha': `Field '{{ field }}' must have a-z characters only`,
     'alternateLastName.maxLength': `Field '{{ field }}' must be a maximum of 255 characters`,
     'alternateHouseNameOrNumber.string': `Field '{{ field }}' must be a string`,
     'alternateHouseNameOrNumber.requiredWhen': `Field '{{ field }}' is required when field 'additionalParentOrGuardian' is true`,

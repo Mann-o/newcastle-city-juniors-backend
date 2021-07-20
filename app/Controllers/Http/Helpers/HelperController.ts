@@ -15,7 +15,12 @@ export default class HelperController {
 
     const paymentIntents: Stripe.PaymentIntent[] = []
 
-    for await (const paymentIntent of stripeClient.paymentIntents.list({ limit: 100 })) {
+    for await (const paymentIntent of stripeClient.paymentIntents.list({
+      limit: 100,
+      created: {
+        gt: 1626134400,
+      },
+    })) {
       paymentIntents.push(paymentIntent)
     }
 

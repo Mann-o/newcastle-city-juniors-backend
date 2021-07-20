@@ -30,4 +30,7 @@ export default Env.rules({
   MAIL_PORT: Env.schema.number(),
 
   STRIPE_API_SECRET: Env.schema.string(),
+
+  SENTRY_DSN: Env.schema.string(),
+  SENTRY_TRACES_SAMPLE_RATE: Env.schema.number(),
 })

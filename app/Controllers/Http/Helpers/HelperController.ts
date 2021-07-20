@@ -1,9 +1,9 @@
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Env from '@ioc:Adonis/Core/Env'
 
-import Stripe from 'stripe'
-
 import Player from 'App/Models/Player'
+
+import Stripe from 'stripe'
 
 export default class HelperController {
   public async getPaymentSchedule2021({ view }: HttpContextContract) {
@@ -13,31 +13,14 @@ export default class HelperController {
       apiVersion: '2020-08-27',
     })
 
-    const paymentIntents: any[] = []
+    const paymentIntents: Stripe.PaymentIntent[] = []
 
-    /* eslint-disable @typescript-eslint/naming-convention */
-    var { has_more, data } = await stripeClient.paymentIntents.list({
-      limit: 100,
-      starting_after: 'pi_1JCqVqJgy48auTmo9HOK9550',
-    })
-
-    paymentIntents.push(...data.map(({ id, status, amount }) => ({ id, status, amount })))
-
-    while (has_more) {
-      var { has_more, data } = await stripeClient.paymentIntents.list({
-        limit: 100,
-        starting_after: paymentIntents[paymentIntents.length - 1].id,
-      })
-      paymentIntents.push(...data.map(({ id, status, amount }) => ({ id, status, amount })))
+    for await (const paymentIntent of stripeClient.paymentIntents.list({ limit: 100 })) {
+      paymentIntents.push(paymentIntent)
     }
-    /* eslint-enable @typescript-eslint/naming-convention */
 
     for (const player of players as Player[]) {
       const paymentIntent = paymentIntents.find(({ id }) => id === player.stripePaymentIntentId)
-
-      if (!paymentIntent) {
-        throw new Error('payment intent not found...')
-      }
 
       if (paymentIntent?.status === 'succeeded') {
         player.paid = true

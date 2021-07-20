@@ -16,14 +16,17 @@ export default class HelperController {
     const paymentIntents: any[] = []
 
     /* eslint-disable @typescript-eslint/naming-convention */
-    var { has_more, data } = await stripeClient.paymentIntents.list({ limit: 100 })
+    var { has_more, data } = await stripeClient.paymentIntents.list({
+      limit: 100,
+      starting_after: 'pi_1JCqVqJgy48auTmo9HOK9550',
+    })
 
     paymentIntents.push(...data.map(({ id, status, amount }) => ({ id, status, amount })))
 
     while (has_more) {
       var { has_more, data } = await stripeClient.paymentIntents.list({
         limit: 100,
-        ending_before: paymentIntents[paymentIntents.length - 1].id,
+        starting_after: paymentIntents[paymentIntents.length - 1].id,
       })
       paymentIntents.push(...data.map(({ id, status, amount }) => ({ id, status, amount })))
     }
@@ -31,6 +34,10 @@ export default class HelperController {
 
     for (const player of players as Player[]) {
       const paymentIntent = paymentIntents.find(({ id }) => id === player.stripePaymentIntentId)
+
+      if (!paymentIntent) {
+        throw new Error('payment intent not found...')
+      }
 
       if (paymentIntent?.status === 'succeeded') {
         player.paid = true

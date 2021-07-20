@@ -13,10 +13,26 @@ export default class HelperController {
       apiVersion: '2020-08-27',
     })
 
-    for (const player of players as any[]) {
-      const paymentIntent = await stripeClient.paymentIntents.retrieve(player.stripePaymentIntentId)
+    const paymentIntents: any[] = []
 
-      if (paymentIntent.status === 'succeeded') {
+    /* eslint-disable @typescript-eslint/naming-convention */
+    var { has_more, data } = await stripeClient.paymentIntents.list({ limit: 100 })
+
+    paymentIntents.push(...data.map(({ id, status, amount }) => ({ id, status, amount })))
+
+    while (has_more) {
+      var { has_more, data } = await stripeClient.paymentIntents.list({
+        limit: 100,
+        ending_before: paymentIntents[paymentIntents.length - 1].id,
+      })
+      paymentIntents.push(...data.map(({ id, status, amount }) => ({ id, status, amount })))
+    }
+    /* eslint-enable @typescript-eslint/naming-convention */
+
+    for (const player of players as Player[]) {
+      const paymentIntent = paymentIntents.find(({ id }) => id === player.stripePaymentIntentId)
+
+      if (paymentIntent?.status === 'succeeded') {
         player.paid = true
         player.amountPaid = `£${(paymentIntent.amount / 100).toFixed(2)}`
       } else {

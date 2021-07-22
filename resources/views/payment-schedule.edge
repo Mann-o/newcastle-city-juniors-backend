@@ -3,62 +3,95 @@
   <meta charset="utf-8">
   <title>Payment Schedule - 2021</title>
   <style>
-    body {
+    * {
+      margin: 0;
+      padding: 0;
       font-family: sans-serif;
+      font-size: 11px;
+    }
+
+    body {
+      padding: 20px;
+    }
+
+    table {
+      margin-bottom: 20px;
+      width: 100%;
     }
 
     th, td {
       text-align: left;
-      padding: 10px;
+      padding: 0 10px;
     }
 
     td {
       vertical-align: top;
     }
+
+    tr th:first-of-type,
+    tr td:first-of-type {
+      width: 10%;
+    }
+
+    tr th:nth-of-type(2),
+    tr td:nth-of-type(2) {
+      width: 20%;
+    }
+
+    tr th:nth-of-type(3),
+    tr td:nth-of-type(3) {
+      width: 10%;
+    }
+
+    tr th:last-of-type,
+    tr td:last-of-type {
+      width: 60%;
+    }
+
+    a {
+      color: black;
+    }
   </style>
 </head>
 <body>
-  <table>
-    <thead>
-      <tr>
-        <th>Age Group</th>
-        <th>Player</th>
-        <th>Paid?</th>
-        <th>Contact Emails</th>
-      </tr>
-    </thead>
-    <tbody>
-      @each ((players, ageGroup) in ageGroups)
+  @each (ageGroup in ageGroups)
+    <table>
+      <thead>
         <tr>
-          <td>{{ ageGroup }}</td>
-          <td>
-            @each (player in players)
-              <span>{{ player.name }}</span>
-              <br>
+          <th>Age Group</th>
+          <th>Player</th>
+          <th>Paid?</th>
+          <th>Contact Email(s)</th>
+        </tr>
+      </thead>
+      <tbody>
+        @each (player in ageGroup.players)
+          <tr>
+            @if (ageGroup.players.indexOf(player) === 0)
+              <td>{{ ageGroup.ageGroupName }}</td>
+            @else
+              <td>&nbsp;</td>
             @end
-          </td>
-          <td>
-            @each (player in players)
+            <td>
+              <span title="{{ player.stripePaymentIntentId }}">{{ player.name }}</span>
+            </td>
+            <td>
               @if (player.paid)
                 <span style="color:green">{{ player.amountPaid }}</span>
               @else
-                <span style="color:red">Not Paid</span></span>
+                <span style="color:red">Not Paid</span>
               @end
-              <br>
-            @end
-          </td>
-          <td>
-            @each (player in players)
-              <span>{{ player.user.email }}</span>
+            </td>
+            <td>
+              <a href="mailto:{{ player.user.email }}">{{ player.user.email }}</a>
               @if (player.user.alternateEmail)
-              <span>/ {{ player.user.alternateEmail }}</span>
+              or <a href="mailto:{{ player.user.alternateEmail }}">{{ player.user.alternateEmail }}</a>
               @endif
-              <br>
-            @end
-          </td>
-        </tr>
-      @end
-    </tbody>
-  <table>
+            </td>
+          </tr>
+        @end
+      </tbody>
+    </table>
+  @end
 </body>
 </html>

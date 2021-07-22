@@ -35,24 +35,34 @@ export default class HelperController {
       }
     }
 
-    const ageGroups = players.reduce((acc, player: any) => {
-      const mappedPlayer = {
-        name: player.fullName,
-        paid: player.paid,
-        ...(player.paid && {
-          amountPaid: player.amountPaid,
-        }),
-        user: player.user,
-      }
+    const ageGroups = Object.entries(
+      players.reduce((acc, player: any) => {
+        const mappedPlayer = {
+          name: player.fullName,
+          paid: player.paid,
+          stripePaymentIntentId: player.stripePaymentIntentId,
+          ...(player.paid && {
+            amountPaid: player.amountPaid,
+          }),
+          user: player.user,
+        }
 
-      if (acc.hasOwnProperty(player.ageGroup.name)) {
-        acc[player.ageGroup.name].push(mappedPlayer)
-      } else {
-        acc[player.ageGroup.name] = [mappedPlayer]
-      }
+        if (acc.hasOwnProperty(player.ageGroup.name)) {
+          acc[player.ageGroup.name].push(mappedPlayer)
+        } else {
+          acc[player.ageGroup.name] = [mappedPlayer]
+        }
 
-      return acc
-    }, {})
+        return acc
+      }, {}),
+    )
+      .map(([key, value]) => ({
+        ageGroupName: key,
+        players: value,
+      }))
+      .sort((a, b) => {
+        return parseInt(a.ageGroupName.split(' ')[1].replace(/s/, '')) - parseInt(b.ageGroupName.split(' ')[1].replace(/s/, ''))
+      })
 
     return view.render('payment-schedule', { ageGroups })
   }

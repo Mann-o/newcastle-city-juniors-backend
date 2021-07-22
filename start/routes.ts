@@ -10,6 +10,7 @@ Route.group(() => {
     Route.post('/logout', 'Auth/UserController.logout').middleware('auth:api')
     Route.post('/password-reset/start', 'Auth/UserController.startResetPassword')
     Route.post('/password-reset/finish', 'Auth/UserController.finishResetPassword')
+    Route.post('/password-reset/cancel', 'Auth/UserController.cancelResetPassword')
   }).prefix('/auth')
 
   // Club routes

@@ -11,6 +11,7 @@ import User from 'App/Models/User'
 import CreateUserValidator from 'App/Validators/CreateUserValidator'
 import VerifyEmailValidator from 'App/Validators/VerifyEmailValidator'
 import ResetPasswordValidator from 'App/Validators/ResetPasswordValidator'
+import CancelResetPasswordValidator from 'App/Validators/CancelResetPasswordValidator'
 import CannotVerifyEmailException from 'App/Exceptions/CannotVerifyEmailException'
 import EmailNotVerifiedException from 'App/Exceptions/EmailNotVerifiedException'
 
@@ -54,6 +55,7 @@ export default class UserController {
         message: 'Registration successful',
       })
     } catch (error) {
+      console.log(error)
       return response.badRequest({
         status: 'Bad Request',
         code: 400,
@@ -218,6 +220,41 @@ export default class UserController {
         status: 'Bad Request',
         code: 400,
         message: 'Unable to begin reset password process',
+      })
+    }
+  }
+
+  public async cancelResetPassword({ request, response }: HttpContextContract) {
+    await request.validate(CancelResetPasswordValidator)
+
+    const email = request.input('email').toLowerCase()
+    const resetToken = request.input('resetToken')
+
+    try {
+      const user = await User.query().whereRaw('lower(email) = ?', email).andWhere('reset_password_token', resetToken).first()
+
+      if (!user) {
+        return response.notFound({
+          status: 'Not Found',
+          code: 404,
+          message: 'User not found',
+        })
+      }
+
+      user.resetPasswordToken = null
+      await user.save()
+
+      return response.ok({
+        status: 'OK',
+        code: 200,
+        message: 'Password reset request cancelled successfully',
+      })
+    } catch (error) {
+      console.log(error)
+      return response.badRequest({
+        status: 'Bad Request',
+        code: 400,
+        message: 'Unable to cancel reset password process',
       })
     }
   }

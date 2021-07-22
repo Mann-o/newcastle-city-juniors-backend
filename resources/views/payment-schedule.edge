@@ -8,15 +8,8 @@
     }
 
     th, td {
-      padding: 10px 0;
-    }
-
-    th {
       text-align: left;
-    }
-
-    th:first-child {
-      padding-right: 20px;
+      padding: 10px;
     }
 
     td {
@@ -29,7 +22,9 @@
     <thead>
       <tr>
         <th>Age Group</th>
-        <th>Players</th>
+        <th>Player</th>
+        <th>Paid?</th>
+        <th>Contact Emails</th>
       </tr>
     </thead>
     <tbody>
@@ -39,12 +34,25 @@
           <td>
             @each (player in players)
               <span>{{ player.name }}</span>
+              <br>
+            @end
+          </td>
+          <td>
+            @each (player in players)
               @if (player.paid)
-                <span> - Paid ({{ player.amountPaid }})
+                <span style="color:green">{{ player.amountPaid }}</span>
               @else
-                <span> - <span style="color:#ff0000">Not Paid</span></span>
+                <span style="color:red">Not Paid</span></span>
               @end
-              <span> - {{ player.user.email }}</span>
+              <br>
+            @end
+          </td>
+          <td>
+            @each (player in players)
+              <span>{{ player.user.email }}</span>
+              @if (player.user.alternateEmail)
+              <span>/ {{ player.user.alternateEmail }}</span>
+              @endif
               <br>
             @end
           </td>

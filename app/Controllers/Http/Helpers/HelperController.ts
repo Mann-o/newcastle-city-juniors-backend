@@ -7,7 +7,7 @@ import Stripe from 'stripe'
 
 export default class HelperController {
   public async getPaymentSchedule2021({ view }: HttpContextContract) {
-    const players = await Player.query().preload('user').preload('ageGroup')
+    const players = await Player.query().preload('user').preload('ageGroup').orderBy('full_name', 'asc')
 
     const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
       apiVersion: '2020-08-27',
@@ -56,9 +56,9 @@ export default class HelperController {
         return acc
       }, {}),
     )
-      .map(([key, value]) => ({
-        ageGroupName: key,
-        players: value,
+      .map(([ageGroupName, players]) => ({
+        ageGroupName,
+        players,
       }))
       .sort((a, b) => {
         return parseInt(a.ageGroupName.split(' ')[1].replace(/s/, '')) - parseInt(b.ageGroupName.split(' ')[1].replace(/s/, ''))

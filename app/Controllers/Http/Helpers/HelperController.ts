@@ -7,7 +7,7 @@ import Stripe from 'stripe'
 
 export default class HelperController {
   public async getPaymentSchedule2021({ view }: HttpContextContract) {
-    const players = await Player.query().preload('ageGroup')
+    const players = await Player.query().preload('user').preload('ageGroup')
 
     const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
       apiVersion: '2020-08-27',
@@ -42,6 +42,7 @@ export default class HelperController {
         ...(player.paid && {
           amountPaid: player.amountPaid,
         }),
+        user: player.user,
       }
 
       if (acc.hasOwnProperty(player.ageGroup.name)) {

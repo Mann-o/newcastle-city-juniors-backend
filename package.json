@@ -26,22 +26,22 @@
   },
   "dependencies": {
     "@adonisjs/auth": "8.0.7",
-    "@adonisjs/core": "5.1.10",
+    "@adonisjs/core": "5.1.11",
     "@adonisjs/lucid": "15.0.3",
-    "@adonisjs/mail": "7.2.2",
+    "@adonisjs/mail": "7.2.3",
     "@adonisjs/redis": "7.0.8",
     "@adonisjs/repl": "3.1.5",
-    "@adonisjs/view": "6.0.7",
+    "@adonisjs/view": "6.0.8",
     "@sentry/node": "6.10.0",
     "@sentry/tracing": "6.10.0",
     "date-fns": "2.23.0",
     "faker": "5.5.3",
     "luxon": "1.27.0",
-    "pg": "8.6.0",
+    "pg": "8.7.1",
     "phc-argon2": "1.1.2",
     "proxy-addr": "2.0.7",
     "reflect-metadata": "0.1.13",
     "source-map-support": "0.5.19",
-    "stripe": "8.164.0"
+    "stripe": "8.165.0"
   }
 }

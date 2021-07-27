@@ -79,7 +79,13 @@ export default class User extends BaseModel {
   public rememberMeToken: string | null
 
   @column()
-  public stripeCustomerId: string | undefined
+  public stripeCustomerId: string
+
+  @column()
+  public stripePaymentMethodId: string | undefined
+
+  @column()
+  public stripeLast4: string | undefined
 
   @column()
   public resetPasswordToken: string | null

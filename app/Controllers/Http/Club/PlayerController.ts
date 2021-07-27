@@ -64,12 +64,6 @@ export default class PlayerController {
 
     const player = await Player.query().where('userId', user.id).andWhere('id', params.playerId).preload('ageGroup').first()
 
-    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
-      apiVersion: '2020-08-27',
-    })
-
-    const paymentIntent = await stripeClient.paymentIntents.retrieve(player!.stripePaymentIntentId)
-
     if (!player) {
       return response.notFound({
         status: 'Not Found',
@@ -78,12 +72,33 @@ export default class PlayerController {
       })
     }
 
+    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+      apiVersion: '2020-08-27',
+    })
+
+    const paymentIntent = await stripeClient.paymentIntents.retrieve(player.stripePaymentIntentId)
+
+    if (player.stripeSubscriptionId === null) {
+      return response.ok({
+        status: 'OK',
+        code: 200,
+        data: {
+          ...player.serialize(),
+          payment_intent: paymentIntent,
+          subscription: null,
+        },
+      })
+    }
+
+    const subscription = await stripeClient.subscriptions.retrieve(player.stripeSubscriptionId)
+
     return response.ok({
       status: 'OK',
       code: 200,
       data: {
         ...player.serialize(),
         payment_intent: paymentIntent,
+        subscription,
       },
     })
   }

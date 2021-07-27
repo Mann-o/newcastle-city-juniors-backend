@@ -44,6 +44,8 @@ Route.group(() => {
     Route.post('/create-checkout', 'Stripe/StripeController.createCheckout')
     Route.post('/webhook-handler', 'Stripe/StripeController.handleCheckoutWebhook')
     Route.get('/get-payments-for-user', 'Stripe/StripeController.getPaymentsForUser').middleware('auth:api')
+    Route.post('/create-subscription', 'Stripe/StripeController.createSubscriptionForUser').middleware('auth:api')
+    Route.post('/create-customer-portal-session', 'Stripe/StripeController.createCustomerPortalSession').middleware('auth:api')
   }).prefix('/stripe')
 
   // Helper routes

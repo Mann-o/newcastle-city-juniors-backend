@@ -40,6 +40,9 @@ export default class Player extends BaseModel {
   public stripePaymentIntentId: string
 
   @column()
+  public stripeSubscriptionId: string
+
+  @column()
   public paid?: boolean
 
   @column()

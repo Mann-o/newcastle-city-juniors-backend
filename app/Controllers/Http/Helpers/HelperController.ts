@@ -6,7 +6,7 @@ import Player from 'App/Models/Player'
 import Stripe from 'stripe'
 
 export default class HelperController {
-  public async getPaymentSchedule2021({ view }: HttpContextContract) {
+  public async getOneOffPaymentSchedule2021({ view }: HttpContextContract) {
     const players = await Player.query().preload('user').preload('ageGroup').orderBy('full_name', 'asc')
 
     const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
@@ -60,10 +60,60 @@ export default class HelperController {
         ageGroupName,
         players,
       }))
-      .sort((a, b) => {
-        return parseInt(a.ageGroupName.split(' ')[1].replace(/s/, '')) - parseInt(b.ageGroupName.split(' ')[1].replace(/s/, ''))
-      })
+      .sort((a, b) => parseInt(a.ageGroupName.split(' ')[1].replace(/s/, '')) - parseInt(b.ageGroupName.split(' ')[1].replace(/s/, '')))
 
-    return view.render('payment-schedule', { ageGroups })
+    return view.render('payment-schedule-one-off', { ageGroups })
+  }
+
+  public async getSubscriptionsPaymentSchedule2021({ view }: HttpContextContract) {
+    const players = await Player.query().preload('user').preload('ageGroup').orderBy('full_name', 'asc')
+
+    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+      apiVersion: '2020-08-27',
+    })
+
+    const subscriptions: Stripe.Subscription[] = []
+
+    for await (const subscription of stripeClient.subscriptions.list({
+      limit: 100,
+      created: {
+        gt: 1626134400,
+      },
+    })) {
+      subscriptions.push(subscription)
+    }
+
+    for (const player of players as Player[]) {
+      const subscription = subscriptions.find(({ id }) => id === player.stripeSubscriptionId)
+
+      player.subscriptionStatus = subscription ? subscription.status : 'not_setup'
+    }
+
+    const ageGroups = Object.entries(
+      players.reduce((acc, player: any) => {
+        const mappedPlayer = {
+          name: player.fullName,
+          paid: player.paid,
+          stripeSubscriptionId: player.stripeSubscriptionId,
+          subscriptionStatus: player.subscriptionStatus,
+          user: player.user,
+        }
+
+        if (acc.hasOwnProperty(player.ageGroup.name)) {
+          acc[player.ageGroup.name].push(mappedPlayer)
+        } else {
+          acc[player.ageGroup.name] = [mappedPlayer]
+        }
+
+        return acc
+      }, {}),
+    )
+      .map(([ageGroupName, players]) => ({
+        ageGroupName,
+        players,
+      }))
+      .sort((a, b) => parseInt(a.ageGroupName.split(' ')[1].replace(/s/, '')) - parseInt(b.ageGroupName.split(' ')[1].replace(/s/, '')))
+
+    return view.render('payment-schedule-subscriptions', { ageGroups })
   }
 }

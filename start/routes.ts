@@ -50,6 +50,9 @@ Route.group(() => {
 
   // Helper routes
   Route.group(() => {
-    Route.get('/payment-schedule-2021', 'Helpers/HelperController.getPaymentSchedule2021').middleware('auth:basic')
+    Route.get('/payment-schedule-2021/one-off', 'Helpers/HelperController.getOneOffPaymentSchedule2021').middleware('auth:basic')
+    Route.get('/payment-schedule-2021/subscriptions', 'Helpers/HelperController.getSubscriptionsPaymentSchedule2021').middleware(
+      'auth:basic',
+    )
   }).prefix('/helpers')
 }).prefix('/api/v1')

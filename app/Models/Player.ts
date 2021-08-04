@@ -52,6 +52,9 @@ export default class Player extends BaseModel {
   public paymentIntent?: any
 
   @column()
+  public subscriptionStatus?: string
+
+  @column()
   public userId: number
 
   @belongsTo(() => User)

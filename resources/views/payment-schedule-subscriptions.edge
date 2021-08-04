@@ -77,17 +77,21 @@
             </td>
             <td>
               @if (player.subscriptionStatus === 'not_setup')
-                <span style="color:red">Not Setup</span>
+                <span title="{{ player.subscriptionStatus }}" style="color:red">Not Setup</span>
               @elseif (player.subscriptionStatus === 'trialing')
-                <span style="color:goldenrod">Trialling</span>
+                <span title="{{ player.subscriptionStatus }}" style="color:goldenrod">Trialling</span>
               @elseif (player.subscriptionStatus === 'active')
-                <span style="color:green">Active</span>
+                <span title="{{ player.subscriptionStatus }}" style="color:green">Active</span>
               @elseif (player.subscriptionStatus === 'unpaid')
-                <span style="color:red">Payment Missed</span>
+                <span title="{{ player.subscriptionStatus }}" style="color:red">Payment Missed</span>
               @elseif (player.subscriptionStatus === 'incomplete' || player.subscriptionStatus === 'incomplete_expired')
-                <span style="color:red">Missing payment method</span>
+                <span title="{{ player.subscriptionStatus }}" style="color:red">Missing Payment Method</span>
+              @elseif (player.subscriptionStatus === 'past_due')
+                <span title="{{ player.subscriptionStatus }}" style="color:red">Past Due</span>
+              @elseif (player.subscriptionStatus === 'canceled')
+                <span title="{{ player.subscriptionStatus }}" style="color:red">Cancelled</span>
               @else
-                <span>Unknown</span>
+                <span title="{{ player.subscriptionStatus }}">Unknown</span>
               @end
             </td>
             <td>

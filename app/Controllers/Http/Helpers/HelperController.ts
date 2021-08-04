@@ -7,11 +7,7 @@ import Stripe from 'stripe'
 
 export default class HelperController {
   public async getOneOffPaymentSchedule2021({ view }: HttpContextContract) {
-    const players = await Player.query()
-      .where('membership_fee_option', 'subscription')
-      .preload('user')
-      .preload('ageGroup')
-      .orderBy('full_name', 'asc')
+    const players = await Player.query().preload('user').preload('ageGroup').orderBy('full_name', 'asc')
 
     const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
       apiVersion: '2020-08-27',
@@ -70,7 +66,11 @@ export default class HelperController {
   }
 
   public async getSubscriptionsPaymentSchedule2021({ view }: HttpContextContract) {
-    const players = await Player.query().preload('user').preload('ageGroup').orderBy('full_name', 'asc')
+    const players = await Player.query()
+      .where('membership_fee_option', 'subscription')
+      .preload('user')
+      .preload('ageGroup')
+      .orderBy('full_name', 'asc')
 
     const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
       apiVersion: '2020-08-27',

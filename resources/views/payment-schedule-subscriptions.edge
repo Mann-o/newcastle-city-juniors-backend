@@ -77,8 +77,8 @@
               <span title="{{ player.stripePaymentIntentId }}">{{ player.name }}</span>
             </td>
             <td>
-              @if (player.subscriptionStatus === 'not_setup')
-                <span title="{{ player.subscriptionStatus }}" style="color:red">Not Setup</span>
+              @if (player.subscription === 'not_setup')
+                <span title="{{ player.subscription }}" style="color:red">Not Setup</span>
               @elseif (player.subscriptionStatus === 'trialing')
                 <span title="{{ player.subscriptionStatus }}" style="color:goldenrod">Trial Mode</span>
               @elseif (player.subscriptionStatus === 'active')
@@ -93,7 +93,13 @@
                 <span title="{{ player.subscriptionStatus }}">Unknown</span>
               @end
             </td>
-            <td>{{ player.firstPaymentDate }}</td>
+            <td>
+              @if (player.firstPaymentDate)
+                <span>{{ player.firstPaymentDate }}</span>
+              @else
+                <span>N/A</span>
+              @end
+            </td>
             <td>
               <a href="mailto:{{ player.user.email }}">{{ player.user.email }}</a>
               @if (player.user.alternateEmail)

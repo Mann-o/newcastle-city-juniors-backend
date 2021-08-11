@@ -101,8 +101,13 @@ export default class HelperController {
           name: player.fullName,
           paid: player.paid,
           stripeSubscriptionId: player.stripeSubscriptionId,
-          subscriptionStatus: player.subscription.status,
-          firstPaymentDate: format(fromUnixTime(player.subscription.billing_cycle_anchor), 'dd/MM/yyyy'),
+          subscriptionStatus: player.subscription === 'not_setup' ? 'not_setup' : player.subscription.status,
+          ...(player.subscription !== 'not_setup' && {
+            firstPaymentDate:
+              player.subscription.status === 'trialing'
+                ? format(fromUnixTime(player.subscription.trial_end), 'dd/MM/yyyy')
+                : format(fromUnixTime(player.subscription.billing_cycle_anchor), 'dd/MM/yyyy'),
+          }),
           user: player.user,
         }
 

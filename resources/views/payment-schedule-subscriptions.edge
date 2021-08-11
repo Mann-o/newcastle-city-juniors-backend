@@ -77,8 +77,8 @@
               <span title="{{ player.stripePaymentIntentId }}">{{ player.name }}</span>
             </td>
             <td>
-              @if (player.subscription === 'not_setup')
-                <span title="{{ player.subscription }}" style="color:red">Not Setup</span>
+              @if (player.subscriptionStatus === 'not_setup')
+                <span title="{{ player.subscriptionStatus }}" style="color:red">Not Setup</span>
               @elseif (player.subscriptionStatus === 'trialing')
                 <span title="{{ player.subscriptionStatus }}" style="color:goldenrod">Trial Mode</span>
               @elseif (player.subscriptionStatus === 'active')

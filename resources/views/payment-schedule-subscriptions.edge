@@ -61,6 +61,7 @@
           <th>Age Group</th>
           <th>Player</th>
           <th>Subscription Status</th>
+          <th>First Payment Date</th>
           <th>Contact Email(s)</th>
         </tr>
       </thead>
@@ -92,6 +93,7 @@
                 <span title="{{ player.subscriptionStatus }}">Unknown</span>
               @end
             </td>
+            <td>{{ player.firstPaymentDate }}</td>
             <td>
               <a href="mailto:{{ player.user.email }}">{{ player.user.email }}</a>
               @if (player.user.alternateEmail)

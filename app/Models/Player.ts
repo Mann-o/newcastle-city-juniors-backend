@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon'
 import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm'
+import Stripe from 'stripe'
 
 import Team from 'App/Models/Team'
 import User from 'App/Models/User'
@@ -52,7 +53,7 @@ export default class Player extends BaseModel {
   public paymentIntent?: any
 
   @column()
-  public subscriptionStatus?: string
+  public subscription?: Stripe.Subscription | 'not_setup'
 
   @column()
   public userId: number

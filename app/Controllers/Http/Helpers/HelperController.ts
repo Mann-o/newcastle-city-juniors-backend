@@ -4,6 +4,7 @@ import Env from '@ioc:Adonis/Core/Env'
 import Player from 'App/Models/Player'
 
 import Stripe from 'stripe'
+import { format, fromUnixTime } from 'date-fns'
 
 export default class HelperController {
   public async getOneOffPaymentSchedule2021({ view }: HttpContextContract) {
@@ -83,6 +84,7 @@ export default class HelperController {
       created: {
         gt: 1626134400,
       },
+      expand: ['latest_invoice'],
     })) {
       subscriptions.push(subscription)
     }
@@ -90,7 +92,7 @@ export default class HelperController {
     for (const player of players as Player[]) {
       const subscription = subscriptions.find(({ id }) => id === player.stripeSubscriptionId)
 
-      player.subscriptionStatus = subscription ? subscription.status : 'not_setup'
+      player.subscription = subscription ? subscription : 'not_setup'
     }
 
     const ageGroups = Object.entries(
@@ -99,7 +101,8 @@ export default class HelperController {
           name: player.fullName,
           paid: player.paid,
           stripeSubscriptionId: player.stripeSubscriptionId,
-          subscriptionStatus: player.subscriptionStatus,
+          subscriptionStatus: player.subscription.status,
+          firstPaymentDate: format(fromUnixTime(player.subscription.billing_cycle_anchor), 'dd/MM/yyyy'),
           user: player.user,
         }
 

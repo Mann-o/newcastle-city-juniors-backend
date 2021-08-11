@@ -84,7 +84,7 @@ export default class HelperController {
       created: {
         gt: 1626134400,
       },
-      expand: ['latest_invoice'],
+      expand: ['data.latest_invoice'],
     })) {
       subscriptions.push(subscription)
     }

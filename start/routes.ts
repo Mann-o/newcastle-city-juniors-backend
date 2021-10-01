@@ -1,6 +1,10 @@
 import Route from '@ioc:Adonis/Core/Route'
 
+Route.get('/', () => 'NCJ server is up and running!')
+
 Route.group(() => {
+  Route.get('/', () => 'NCJ API server is up and running!')
+
   // Authentication routes
   Route.group(() => {
     Route.post('/login', 'Auth/UserController.login')

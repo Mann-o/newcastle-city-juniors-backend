@@ -4,7 +4,7 @@ export default class ResetPasswordValidator {
   public schema = schema.create({
     email: schema.string({ escape: true, trim: true }, [rules.email({ sanitize: true }), rules.maxLength(255)]),
     resetToken: schema.string({}, [rules.maxLength(255)]),
-    newPassword: schema.string({}, [rules.minLength(8), rules.maxLength(255), rules.confirmed('newPasswordConfirmation')]),
+    newPassword: schema.string({}, [rules.confirmed('newPasswordConfirmation'), rules.minLength(8), rules.maxLength(255)]),
   })
 
   public messages = {

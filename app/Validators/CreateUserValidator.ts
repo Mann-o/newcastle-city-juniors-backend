@@ -9,10 +9,10 @@ export default class CreateUserValidator {
     postcode: schema.string({ escape: true, trim: true }, [rules.maxLength(255)]),
     mobileNumber: schema.string({ escape: true, trim: true }, [rules.maxLength(255)]),
     email: schema.string({ escape: true, trim: true }, [
+      rules.confirmed('emailConfirmation'),
       rules.email({ sanitize: true }),
       rules.maxLength(255),
       rules.unique({ table: 'users', column: 'email', caseInsensitive: true }),
-      rules.confirmed('emailConfirmation'),
     ]),
     additionalParentOrGuardian: schema.boolean(),
     alternateTitle: schema.string.optional({ escape: true, trim: true }, [

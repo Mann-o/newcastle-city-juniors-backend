@@ -17,7 +17,7 @@ import EmailNotVerifiedException from 'App/Exceptions/EmailNotVerifiedException'
 
 export default class UserController {
   public async register({ request, response }: HttpContextContract) {
-    await request.validate(CreateUserValidator)
+    const validatedRequest = await request.validate(CreateUserValidator)
 
     try {
       const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
@@ -29,14 +29,14 @@ export default class UserController {
           line1: request.input('houseNameOrNumber'),
           postal_code: request.input('postcode'),
         },
-        email: request.input('email').toLowerCase(),
+        email: validatedRequest.email,
         name: `${request.input('firstName')} ${request.input('lastName')}`,
         phone: request.input('mobileNumber'),
       })
 
       const user = await User.create({
         ...request.except(['passwordConfirmation', 'emailConfirmation']),
-        email: request.input('email').toLowerCase(),
+        email: validatedRequest.email,
         stripeCustomerId: id,
         emailVerificationToken: cuid(),
       })
@@ -44,7 +44,7 @@ export default class UserController {
       Mail.send(message => {
         message
           .from('info@newcastlecityjuniors.co.uk', 'Newcastle City Juniors')
-          .to(user.email.toLowerCase())
+          .to(validatedRequest.email)
           .subject('Verify email address')
           .htmlView('emails/email-verification', { user })
       })

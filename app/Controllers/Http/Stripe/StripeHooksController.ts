@@ -2,7 +2,7 @@ import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Env from '@ioc:Adonis/Core/Env'
 import Mail from '@ioc:Adonis/Addons/Mail'
 
-import QRService from '../../../Services/QrService'
+import QRService from 'App/Services/QRService'
 
 import Stripe from 'stripe'
 

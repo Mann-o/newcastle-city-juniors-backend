@@ -1,8 +1,9 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, beforeSave, hasMany, HasMany, hasManyThrough, HasManyThrough } from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, column, beforeSave, hasMany, HasMany, hasManyThrough, HasManyThrough, manyToMany, ManyToMany } from '@ioc:Adonis/Lucid/Orm'
 import Hash from '@ioc:Adonis/Core/Hash'
 
 import Player from 'App/Models/Player'
+import Role from 'App/Models/Role'
 import Team from 'App/Models/Team'
 
 export default class User extends BaseModel {
@@ -98,6 +99,19 @@ export default class User extends BaseModel {
 
   @column.dateTime({ autoCreate: false, autoUpdate: false })
   public lastLoggedIn: DateTime | null
+
+  @manyToMany(() => Role, {
+    localKey: 'id',
+    pivotForeignKey: 'user_id',
+    relatedKey: 'id',
+    pivotRelatedForeignKey: 'role_id',
+    pivotTable: 'user_roles',
+    pivotTimestamps: {
+      createdAt: 'created_at',
+      updatedAt: false,
+    },
+  })
+  public roles: ManyToMany<typeof Role>
 
   @beforeSave()
   public static async hashPassword(user: User) {

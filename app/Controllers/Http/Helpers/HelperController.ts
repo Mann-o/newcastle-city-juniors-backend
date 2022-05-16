@@ -11,7 +11,7 @@ export default class HelperController {
     const players = await Player.query().preload('user').preload('ageGroup').orderBy('full_name', 'asc')
 
     const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
-      apiVersion: '2020-08-27',
+      apiVersion: Env.get('STRIPE_API_VERSION'),
     })
 
     const paymentIntents: Stripe.PaymentIntent[] = []
@@ -74,7 +74,7 @@ export default class HelperController {
       .orderBy('full_name', 'asc')
 
     const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
-      apiVersion: '2020-08-27',
+      apiVersion: Env.get('STRIPE_API_VERSION'),
     })
 
     const subscriptions: Stripe.Subscription[] = []
@@ -127,5 +127,49 @@ export default class HelperController {
       .sort((a, b) => parseInt(a.ageGroupName.split(' ')[1].replace(/s/, '')) - parseInt(b.ageGroupName.split(' ')[1].replace(/s/, '')))
 
     return view.render('payment-schedule-subscriptions', { ageGroups })
+  }
+
+  public async validatePresentationTicket({ request, view }: HttpContextContract) {
+    const { checkoutId } = request.qs()
+
+    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+      apiVersion: Env.get('STRIPE_API_VERSION'),
+    })
+
+    const checkout = await stripeClient.checkout.sessions.retrieve(checkoutId, {
+      expand: ['line_items'],
+    })
+
+    if (checkout) {
+      return view.render('validate-presentation-ticket', {
+        valid: true,
+        playerName: checkout.metadata?.presentationTicketPlayerName ?? 'Unknown',
+        ageGroup: checkout.metadata?.presentationTicketAgeGroup.toUpperCase() ?? 'Unknown',
+        ticketCounts: {
+          visitor:
+            checkout.line_items?.data.reduce((visitorCount, lineItem) => {
+              if (lineItem.description === 'Presentation 2022 - Visitor Ticket') {
+                visitorCount += lineItem?.quantity ?? 0
+              }
+
+              return visitorCount
+            }, 0) ?? 0,
+          player:
+            checkout.line_items?.data.reduce((visitorCount, lineItem) => {
+              if (lineItem.description === 'Presenttion 2022 - Player Ticket') {
+                visitorCount += lineItem?.quantity ?? 0
+              }
+
+              return visitorCount
+            }, 0) ?? 0,
+        },
+        orderId: checkoutId,
+        emailAddress: checkout?.customer_email ?? 'Unknown',
+      })
+    }
+
+    return view.render('validate-presentation-ticket', {
+      valid: false,
+    })
   }
 }

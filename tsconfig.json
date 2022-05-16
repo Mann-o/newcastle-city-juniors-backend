@@ -33,6 +33,7 @@
       "@adonisjs/lucid",
       "@adonisjs/auth",
       "@adonisjs/redis"
-    ]
+    ],
+    "experimentalDecorators": true
   }
 }

@@ -25,7 +25,7 @@ export default class PlayerController {
       })
 
       const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
-        apiVersion: '2020-08-27',
+        apiVersion: Env.get('STRIPE_API_VERSION'),
       })
 
       let cost: number
@@ -73,7 +73,7 @@ export default class PlayerController {
     }
 
     const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
-      apiVersion: '2020-08-27',
+      apiVersion: Env.get('STRIPE_API_VERSION'),
     })
 
     const paymentIntent = await stripeClient.paymentIntents.retrieve(player.stripePaymentIntentId)

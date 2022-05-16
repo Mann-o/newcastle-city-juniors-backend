@@ -10,7 +10,7 @@ import User from 'App/Models/User'
 export default class StripeController {
   public async getPresentation2021EventPaymentIntent({ response }: HttpContextContract) {
     const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
-      apiVersion: '2020-08-27',
+      apiVersion: Env.get('STRIPE_API_VERSION'),
     })
 
     const paymentIntent = await stripeClient.paymentIntents.create({
@@ -23,52 +23,51 @@ export default class StripeController {
     })
   }
 
+  public async getShoppableProducts({ response }: HttpContextContract) {
+    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+      apiVersion: Env.get('STRIPE_API_VERSION'),
+    })
+
+    const prices: Stripe.Price[] = []
+
+    for await (const price of stripeClient.prices.list({
+      limit: 100,
+      active: true,
+      expand: ['data.product'],
+    })) {
+      prices.push(price)
+    }
+
+    response.send({
+      prices: prices.filter((price: any) => price.product.metadata.list === 'true'),
+    })
+  }
+
   public async createCheckout({ request, response }: HttpContextContract) {
     const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
-      apiVersion: '2020-08-27',
+      apiVersion: Env.get('STRIPE_API_VERSION'),
     })
 
     const session = await stripeClient.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
+      cancel_url: 'https://newcastlecityjuniors.co.uk/cart',
       ...request.body(),
-      cancel_url: '',
-      success_url: '',
+      success_url: `${request.body().success_url}?orderId={CHECKOUT_SESSION_ID}`,
     })
 
-    response.send({
-      id: session.id,
-    })
-  }
-
-  public async handleCheckoutWebhook({ request, response }: HttpContextContract) {
-    const { data, type } = request.body()
-
-    if (type === 'checkout.session.completed') {
-      if (data?.object?.metadata?.event === 'presentation-2021') {
-        const email = data.object.customer_email
-        const metadata = {
-          ...data.object.metadata,
-          total_cost: data.object.amount_total,
-        }
-
-        // send email!
-        Mail.send(message => {
-          message
-            .from('info@newcastlecityjuniors.co.uk', 'Newcastle City Juniors')
-            .to(email)
-            .subject('Presentation 2020-21 Tickets')
-            .htmlView('emails/presentation-2021', { metadata })
-        })
-      }
+    if (session.url) {
+      response.send({
+        checkoutUrl: session.url,
+      })
+    } else {
+      response.abort('Unable to create a Stripe checkout session', 502)
     }
-
-    response.ok({ status: 'success' })
   }
 
   public async getPaymentsForUser({ auth, response }: HttpContextContract) {
     const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
-      apiVersion: '2020-08-27',
+      apiVersion: Env.get('STRIPE_API_VERSION'),
     })
 
     const authenticatedUser = auth.use('api').user!
@@ -99,7 +98,7 @@ export default class StripeController {
     }
 
     const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
-      apiVersion: '2020-08-27',
+      apiVersion: Env.get('STRIPE_API_VERSION'),
     })
 
     const session = await stripeClient.billingPortal.sessions.create({
@@ -120,7 +119,7 @@ export default class StripeController {
     const subscriptionDate = request.input('subscriptionDate').padStart(2, '0')
 
     const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
-      apiVersion: '2020-08-27',
+      apiVersion: Env.get('STRIPE_API_VERSION'),
     })
 
     const user = await User.query().where('id', authenticatedUser.id).first()
@@ -180,5 +179,31 @@ export default class StripeController {
         message: 'Unable to create subscription',
       })
     }
+  }
+
+  public async getOrder({ request, response }: HttpContextContract) {
+    if (request.body().orderId) {
+      const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+        apiVersion: Env.get('STRIPE_API_VERSION'),
+      })
+
+      const order = await stripeClient.checkout.sessions.retrieve(request.body().orderId, {
+        expand: ['line_items'],
+      })
+
+      if (order) {
+        return response.ok(order)
+      }
+
+      return response.notFound({
+        status: 'error',
+        error: 'Order not found',
+      })
+    }
+
+    return response.badRequest({
+      status: 'error',
+      error: 'No order ID was provided in the request',
+    })
   }
 }

@@ -1,0 +1,14 @@
+<h1>Ticket Validation</h1>
+
+{% if valid %}
+<p><strong>TICKET IS VALID</strong></p>
+<p><strong>Player Name:</strong> {{ playerName }}</p>
+<p><strong>Age Group:</strong> {{ ageGroup }}</p>
+<p><strong>Number of Visitor tickets:</strong> {{ ticketCounts.visitor }}</p>
+<p><strong>Number of Player tickets:</strong> {{ ticketCounts.player }}</p>
+<p><strong>Order ID:</strong> {{ orderId }}</p>
+<p><strong>Email Address:</strong> {{ emailAddress }}</p>
+
+{% else %}
+<p>Ticket is invalid</p>
+{% endif %}

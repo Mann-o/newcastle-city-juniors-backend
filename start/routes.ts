@@ -45,15 +45,23 @@ Route.group(() => {
       Route.post('/presentation-2021-event', 'Stripe/StripeController.getPresentation2021EventPaymentIntent')
     }).prefix('/payment-intents')
 
+    Route.get('/shoppable-products', 'Stripe/StripeController.getShoppableProducts')
     Route.post('/create-checkout', 'Stripe/StripeController.createCheckout')
-    Route.post('/webhook-handler', 'Stripe/StripeController.handleCheckoutWebhook')
     Route.get('/get-payments-for-user', 'Stripe/StripeController.getPaymentsForUser').middleware('auth:api')
     Route.post('/create-subscription', 'Stripe/StripeController.createSubscriptionForUser').middleware('auth:api')
     Route.post('/create-customer-portal-session', 'Stripe/StripeController.createCustomerPortalSession').middleware('auth:api')
+    Route.post('/get-order', 'Stripe/StripeController.getOrder')
+
+    // Hooks
+    Route.group(() => {
+      Route.post('/checkout-complete', 'Stripe/StripeHooksController.handleCheckoutCompleteHook')
+      Route.get('/ticket-qr', 'Stripe/StripeHooksController.ticketsAsQRCode')
+    }).prefix('/hooks')
   }).prefix('/stripe')
 
   // Helper routes
   Route.group(() => {
+    Route.get('/validate-presentation-ticket', 'Helpers/HelperController.validatePresentationTicket')
     Route.get('/payment-schedule-2021/one-off', 'Helpers/HelperController.getOneOffPaymentSchedule2021').middleware('auth:basic')
     Route.get('/payment-schedule-2021/subscriptions', 'Helpers/HelperController.getSubscriptionsPaymentSchedule2021').middleware(
       'auth:basic',

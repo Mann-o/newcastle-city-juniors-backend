@@ -1,5 +1,5 @@
 import BaseSeeder from '@ioc:Adonis/Lucid/Seeder'
-import faker from 'faker/locale/en_GB'
+import faker from '@faker-js/faker/locale/en_GB'
 
 import User from 'App/Models/User'
 

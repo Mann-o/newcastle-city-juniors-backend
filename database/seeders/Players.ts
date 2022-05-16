@@ -2,7 +2,7 @@
 import BaseSeeder from '@ioc:Adonis/Lucid/Seeder'
 import Env from '@ioc:Adonis/Core/Env'
 import Stripe from 'stripe'
-import faker from 'faker/locale/en_GB'
+import faker from '@faker-js/faker/locale/en_GB'
 import { DateTime } from 'luxon'
 
 import User from 'App/Models/User'
@@ -15,7 +15,7 @@ export default class PlayerSeeder extends BaseSeeder {
     const user2 = await User.findOrFail(2)
 
     const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
-      apiVersion: '2020-08-27',
+      apiVersion: Env.get('STRIPE_API_VERSION'),
     })
 
     const paymentIntentUpfront1 = await stripeClient.paymentIntents.create({

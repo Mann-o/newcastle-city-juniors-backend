@@ -2,9 +2,7 @@ import { DateTime } from 'luxon'
 import { BaseModel, BelongsTo, belongsTo, column, computed } from '@ioc:Adonis/Lucid/Orm'
 import Stripe from 'stripe'
 
-import Team from 'App/Models/Team'
 import User from 'App/Models/User'
-import AgeGroup from 'App/Models/AgeGroup'
 import Parent from 'App/Models/Parent'
 
 export default class Player extends BaseModel {

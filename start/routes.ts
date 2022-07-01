@@ -32,16 +32,6 @@ Route.group(() => {
       Route.post('/', 'Club/PlayerController.createPlayer')
       Route.get('/:playerId', 'Club/PlayerController.getPlayer')
     }).prefix('/players')
-
-    // Teams
-    Route.group(() => {
-      Route.get('/', 'Club/TeamController.getAllTeams')
-    }).prefix('/teams')
-
-    // Age Goups
-    Route.group(() => {
-      Route.get('/', 'Club/AgeGroupController.getAllAgeGroups')
-    }).prefix('/age-groups')
   })
     .prefix('/club')
     .middleware('auth:api')
@@ -65,13 +55,4 @@ Route.group(() => {
       Route.get('/ticket-qr', 'Stripe/StripeHooksController.ticketsAsQRCode')
     }).prefix('/hooks')
   }).prefix('/stripe')
-
-  // Helper routes
-  Route.group(() => {
-    Route.get('/validate-presentation-ticket', 'Helpers/HelperController.validatePresentationTicket')
-    Route.get('/payment-schedule-2021/one-off', 'Helpers/HelperController.getOneOffPaymentSchedule2021').middleware('auth:basic')
-    Route.get('/payment-schedule-2021/subscriptions', 'Helpers/HelperController.getSubscriptionsPaymentSchedule2021').middleware(
-      'auth:basic',
-    )
-  }).prefix('/helpers')
 }).prefix('/api/v1')

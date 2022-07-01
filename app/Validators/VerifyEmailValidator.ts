@@ -2,8 +2,13 @@ import { schema, rules } from '@ioc:Adonis/Core/Validator'
 
 export default class VerifyEmailValidator {
   public schema = schema.create({
-    email: schema.string({ escape: true, trim: true }, [rules.email({ sanitize: true }), rules.maxLength(255)]),
-    verificationToken: schema.string({}, [rules.maxLength(255)]),
+    email: schema.string({ escape: true, trim: true }, [
+      rules.email(),
+      rules.maxLength(255),
+    ]),
+    verificationToken: schema.string({}, [
+      rules.maxLength(255),
+    ]),
   })
 
   public messages = {

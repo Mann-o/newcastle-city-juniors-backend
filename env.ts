@@ -30,8 +30,12 @@ export default Env.rules({
   MAIL_PORT: Env.schema.number(),
 
   STRIPE_API_SECRET: Env.schema.string(),
-  STRIPE_SUBSCRIPTION_PRICE_ID_MALE: Env.schema.string(),
-  STRIPE_SUBSCRIPTION_PRICE_ID_FEMALE: Env.schema.string(),
+  STRIPE_MEMBERSHIP_PRICE_ID_SUBSCRIPTION_UPFRONT_MALE: Env.schema.string(),
+  STRIPE_MEMBERSHIP_PRICE_ID_SUBSCRIPTION_UPFRONT_FEMALE: Env.schema.string(),
+  STRIPE_MEMBERSHIP_PRICE_ID_SUBSCRIPTION_MALE: Env.schema.string(),
+  STRIPE_MEMBERSHIP_PRICE_ID_SUBSCRIPTION_FEMALE: Env.schema.string(),
+  STRIPE_MEMBERSHIP_PRICE_ID_UPFRONT_MALE: Env.schema.string(),
+  STRIPE_MEMBERSHIP_PRICE_ID_UPFRONT_FEMALE: Env.schema.string(),
 
   SENTRY_DSN: Env.schema.string(),
   SENTRY_TRACES_SAMPLE_RATE: Env.schema.number(),

@@ -19,6 +19,13 @@ Route.group(() => {
 
   // Club routes
   Route.group(() => {
+    // Parents
+    Route.group(() => {
+      Route.get('/', 'Club/ParentController.getAllParents')
+      Route.post('/', 'Club/ParentController.createParent')
+      Route.get('/:parentId', 'Club/ParentController.getParent')
+    }).prefix('/parents')
+
     // Players
     Route.group(() => {
       Route.get('/', 'Club/PlayerController.getAllPlayers')

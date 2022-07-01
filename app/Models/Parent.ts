@@ -1,15 +1,17 @@
 import { DateTime } from 'luxon'
 import { BaseModel, BelongsTo, belongsTo, column, computed } from '@ioc:Adonis/Lucid/Orm'
-import Stripe from 'stripe'
 
-import Team from 'App/Models/Team'
 import User from 'App/Models/User'
-import AgeGroup from 'App/Models/AgeGroup'
-import Parent from 'App/Models/Parent'
 
-export default class Player extends BaseModel {
+export default class Parent extends BaseModel {
   @column({ isPrimary: true })
   public id: number
+
+  @column()
+  public title: string
+
+  @column()
+  public otherTitle: string
 
   @column()
   public firstName: string
@@ -24,52 +26,31 @@ export default class Player extends BaseModel {
   public dateOfBirth: DateTime
 
   @column()
-  public sex: string
+  public email: string
 
   @column()
-  public medicalConditions: string
+  public addressLineOne: string
+
+  @column()
+  public addressLineTwo: string
+
+  @column()
+  public addressLineThree: string
+
+  @column()
+  public addressLineFour: string
+
+  @column()
+  public addressLineFive: string
+
+  @column()
+  public postalCode: string
+
+  @column()
+  public mobileNumber: string
 
   @column()
   public acceptedCodeOfConduct: boolean
-
-  @column()
-  public acceptedDeclaration: boolean
-
-  @column()
-  public membershipFeeOption: string
-
-  @column()
-  public ageGroup: string
-
-  @column()
-  public team: string
-
-  @column()
-  public paymentDate: number
-
-  @column()
-  public mediaConsented: boolean
-
-  @column()
-  public identityVerificationPhoto: string
-
-  @column()
-  public ageVerificationPhoto: string
-
-  @column()
-  public stripeSubscriptionId: string
-
-  @column()
-  public paid?: boolean
-
-  @column()
-  public amountPaid?: string
-
-  @column()
-  public paymentIntent?: any
-
-  @column()
-  public subscription?: Stripe.Subscription | 'not_setup'
 
   @computed()
   public get full_name() {
@@ -87,12 +68,6 @@ export default class Player extends BaseModel {
 
   @belongsTo(() => User)
   public user: BelongsTo<typeof User>
-
-  @column()
-  public parentId: number
-
-  @belongsTo(() => Parent)
-  public parent: BelongsTo<typeof Parent>
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime

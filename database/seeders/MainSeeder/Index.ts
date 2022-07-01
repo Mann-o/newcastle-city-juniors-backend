@@ -12,8 +12,9 @@ export default class IndexSeeder extends BaseSeeder {
 
   public async run() {
     await this.runSeeder(await import('../Users'))
-    await this.runSeeder(await import('../AgeGroups'))
-    await this.runSeeder(await import('../Teams'))
+    await this.runSeeder(await import('../Permissions'))
+    await this.runSeeder(await import('../UserPermissions'))
+    await this.runSeeder(await import('../Parents'))
     await this.runSeeder(await import('../Players'))
   }
 }

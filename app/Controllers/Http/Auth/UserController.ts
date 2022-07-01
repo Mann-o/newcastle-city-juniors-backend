@@ -13,7 +13,6 @@ import VerifyEmailValidator from 'App/Validators/VerifyEmailValidator'
 import ResetPasswordValidator from 'App/Validators/ResetPasswordValidator'
 import CancelResetPasswordValidator from 'App/Validators/CancelResetPasswordValidator'
 import CannotVerifyEmailException from 'App/Exceptions/CannotVerifyEmailException'
-import EmailNotVerifiedException from 'App/Exceptions/EmailNotVerifiedException'
 
 export default class UserController {
   public async register({ request, response }: HttpContextContract) {
@@ -24,20 +23,26 @@ export default class UserController {
         apiVersion: Env.get('STRIPE_API_VERSION'),
       })
 
-      const { id } = await stripeClient.customers.create({
-        address: {
-          line1: request.input('houseNameOrNumber'),
-          postal_code: request.input('postcode'),
-        },
-        email: validatedRequest.email,
-        name: `${request.input('firstName')} ${request.input('lastName')}`,
-        phone: request.input('mobileNumber'),
+      let stripeCustomerId: string | null = null
+
+      const existingUsers = await stripeClient.customers.list({
+        email: validatedRequest.email.toLowerCase(),
       })
 
+      if (existingUsers.data.length) {
+        stripeCustomerId = existingUsers.data[0].id
+      } else {
+        const newUser = await stripeClient.customers.create({
+          email: validatedRequest.email.toLowerCase(),
+        })
+
+        stripeCustomerId = newUser.id
+      }
+
       const user = await User.create({
-        ...request.except(['passwordConfirmation', 'emailConfirmation']),
+        ...request.except(['passwordConfirmation']),
         email: validatedRequest.email,
-        stripeCustomerId: id,
+        stripeCustomerId,
         emailVerificationToken: cuid(),
       })
 
@@ -46,7 +51,10 @@ export default class UserController {
           .from('info@newcastlecityjuniors.co.uk', 'Newcastle City Juniors')
           .to(validatedRequest.email)
           .subject('Verify email address')
-          .htmlView('emails/email-verification', { user })
+          .htmlView('emails/email-verification', {
+            email: encodeURIComponent(user.email),
+            emailVerificationToken: user.emailVerificationToken,
+          })
       })
 
       return response.ok({
@@ -56,6 +64,7 @@ export default class UserController {
       })
     } catch (error) {
       console.log(error)
+
       return response.badRequest({
         status: 'Bad Request',
         code: 400,
@@ -77,7 +86,7 @@ export default class UserController {
         }
 
         if (!user.emailVerified) {
-          throw new EmailNotVerifiedException('Email address not verified', 401, 'E_CANNOT_VERIFY_EMAIL')
+          throw InvalidCredentialsException
         }
 
         const token = await auth.use('api').attempt(email, password, {
@@ -86,6 +95,7 @@ export default class UserController {
 
         user.lastLoggedIn = DateTime.now()
         user.resetPasswordToken = null
+
         await user.save()
 
         return response.ok({
@@ -97,14 +107,7 @@ export default class UserController {
           },
         })
       } catch (error) {
-        return response.unauthorized({
-          status: 'Unauthorized',
-          code: 401,
-          message:
-            error instanceof EmailNotVerifiedException
-              ? 'Email address not verified - you must verify your email address before accessing the NCJ Portal.'
-              : 'Invalid login credentials, please try again.',
-        })
+        return response.unauthorized()
       }
     }
   }
@@ -115,11 +118,13 @@ export default class UserController {
     const email = request.input('email').toLowerCase()
     const verificationToken = request.input('verificationToken')
 
+    console.log({ email, verificationToken })
+
     try {
       const user = await User.query()
         .where('email_verified', false)
-        .andWhereRaw('lower(email) = ?', email)
-        .andWhere('email_verification_token', verificationToken)
+        .andWhereRaw('lower(email) = ?', email.toLowerCase())
+        .andWhereRaw('lower(email_verification_token) = ?', verificationToken.toLowerCase())
         .first()
 
       if (!user) {

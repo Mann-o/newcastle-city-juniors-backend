@@ -101,7 +101,7 @@
                     </tr>
                     <tr>
                       <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                        <div style="font-family:sans-serif;font-size:14px;line-height:1;text-align:left;color:#000000;">Thank you for registering with Newcastle City Juniors. Before you are able to register players, make payments, and manage your children(s) time at our club, you must first verify your email address.</div>
+                        <div style="font-family:sans-serif;font-size:14px;line-height:1;text-align:left;color:#000000;">Thank you for registering with Newcastle City Juniors. Before you are able to register your child, make payments, and manage your childs time at our club, you must first verify your email address.</div>
                       </td>
                     </tr>
                     <tr>
@@ -116,9 +116,9 @@
                             <td align="center" bgcolor="#fbbf24" role="presentation" style="border:none;border-radius:3px;cursor:auto;mso-padding-alt:10px 25px;background:#fbbf24;" valign="middle">
                               <a
                                 @if(app.nodeEnvironment === 'production')
-                                href="https://www.newcastlecityjuniors.co.uk/verify-email?email={{ user.email }}&token={{ user.emailVerificationToken }}"
+                                href="https://www.newcastlecityjuniors.co.uk/verify-email?email={{ email }}&token={{ emailVerificationToken }}"
                                 @else
-                                href="http://localhost:3000/verify-email?email={{ user.email }}&token={{ user.emailVerificationToken }}"
+                                href="http://localhost:3000/verify-email?email={{ email }}&token={{ emailVerificationToken }}"
                                 @end
                                 style="display:inline-block;background:#fbbf24;color:#000000;font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:12px;font-weight:normal;line-height:120%;margin:0;text-decoration:none;text-transform:none;padding:10px 25px;mso-padding-alt:0px;border-radius:3px;" target="_blank"> VERIFY EMAIL ADDRESS </a>
                             </td>
@@ -130,9 +130,9 @@
                       <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
                         <div style="font-family:sans-serif;font-size:14px;font-style:italic;line-height:1;text-align:left;color:#999999;">
                           @if(app.nodeEnvironment === 'production')
-                          https://www.newcastlecityjuniors.co.uk/verify-email?email={{ user.email }}&token={{ user.emailVerificationToken }}
+                          https://www.newcastlecityjuniors.co.uk/verify-email?email={{{ email }}}&token={{ emailVerificationToken }}
                           @else
-                          http://localhost:3000/verify-email?email={{ user.email }}&token={{ user.emailVerificationToken }}
+                          http://localhost:3000/verify-email?email={{ email }}&token={{ emailVerificationToken }}
                           @end
                       </div>
                       </td>

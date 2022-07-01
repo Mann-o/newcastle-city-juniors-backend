@@ -2,13 +2,17 @@ import { DateTime } from 'luxon'
 import { BaseModel, column, beforeSave, hasMany, HasMany, hasManyThrough, HasManyThrough, manyToMany, ManyToMany } from '@ioc:Adonis/Lucid/Orm'
 import Hash from '@ioc:Adonis/Core/Hash'
 
+import Parent from 'App/Models/Parent'
 import Player from 'App/Models/Player'
-import Role from 'App/Models/Role'
+import Permission from 'App/Models/Permission'
 import Team from 'App/Models/Team'
 
 export default class User extends BaseModel {
   @column({ isPrimary: true })
   public id: number
+
+  @hasMany(() => Parent)
+  public parents: HasMany<typeof Parent>
 
   @hasMany(() => Player)
   public players: HasMany<typeof Player>
@@ -100,18 +104,15 @@ export default class User extends BaseModel {
   @column.dateTime({ autoCreate: false, autoUpdate: false })
   public lastLoggedIn: DateTime | null
 
-  @manyToMany(() => Role, {
+  @manyToMany(() => Permission, {
     localKey: 'id',
-    pivotForeignKey: 'user_id',
     relatedKey: 'id',
-    pivotRelatedForeignKey: 'role_id',
-    pivotTable: 'user_roles',
-    pivotTimestamps: {
-      createdAt: 'created_at',
-      updatedAt: false,
-    },
+    pivotForeignKey: 'user_id',
+    pivotRelatedForeignKey: 'permission_id',
+    pivotTable: 'user_permissions',
+    pivotTimestamps: true,
   })
-  public roles: ManyToMany<typeof Role>
+  public permissions: ManyToMany<typeof Permission>
 
   @beforeSave()
   public static async hashPassword(user: User) {
@@ -121,10 +122,6 @@ export default class User extends BaseModel {
 
     if (user.$dirty.email) {
       user.email = user.email.toLowerCase()
-    }
-
-    if (user.$dirty.alternateEmail && user.alternateEmail !== null) {
-      user.alternateEmail = user.alternateEmail.toLowerCase()
     }
   }
 }

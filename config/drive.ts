@@ -11,7 +11,7 @@ export default driveConfig({
       visibility: 'public',
       root: Application.tmpPath('uploads'),
       serveFiles: true,
-      basePath: '/',
+      basePath: '/uploads',
     },
   },
 })

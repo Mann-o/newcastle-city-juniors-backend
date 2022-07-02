@@ -89,7 +89,7 @@ export default class UserController {
           throw InvalidCredentialsException
         }
 
-        const token = await auth.use('api').attempt(email, password, {
+        const token = await auth.use('api').attempt(email.toLowerCase(), password, {
           expiresIn: '7days',
         })
 

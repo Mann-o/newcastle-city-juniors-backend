@@ -84,7 +84,7 @@ export default class PlayerController {
           trial_end: getUnixTime(
             parseISO(`${getYear(trialEndDate)}-${(getMonth(trialEndDate) + 1).toString().padStart(2, '0')}-${String(player.paymentDate).padStart(2, '0')}`),
           ),
-          cancel_at: getUnixTime(parseISO(`2023-05-${String(player.paymentDate + 1).padStart(2, '0')}`)),
+          cancel_at: getUnixTime(parseISO(`2023-06-${String(player.paymentDate).padStart(2, '0')}`)),
           items: [{ price: Env.get(`STRIPE_MEMBERSHIP_PRICE_ID_SUBSCRIPTION_${player.sex.toUpperCase()}`) }],
           proration_behavior: 'none',
         })

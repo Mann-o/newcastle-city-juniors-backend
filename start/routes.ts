@@ -40,7 +40,7 @@ Route.group(() => {
   Route.group(() => {
     Route.get('/players', 'Admin/PlayerController.getAllPlayers')
     Route.get('/player/:playerId/parent', 'Admin/PlayerController.getParentForPlayer')
-    Route.get('/verification-photos/:type/:path', 'Admin/MediaController.getVerificationPhoto')
+    Route.get('/verification-photos/:folder/:filename', 'Admin/MediaController.getVerificationPhoto')
   })
     .prefix('/admin')
     .middleware('auth:api')

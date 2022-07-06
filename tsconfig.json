@@ -32,7 +32,8 @@
       "@adonisjs/view",
       "@adonisjs/lucid",
       "@adonisjs/auth",
-      "@adonisjs/redis"
+      "@adonisjs/redis",
+      "@adonisjs/drive-s3"
     ],
     "experimentalDecorators": true
   }

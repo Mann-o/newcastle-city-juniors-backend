@@ -13,5 +13,16 @@ export default driveConfig({
       serveFiles: true,
       basePath: '/uploads',
     },
+
+    spaces: {
+      driver: 's3',
+      visibility: 'public',
+      key: Env.get('S3_KEY'),
+      secret: Env.get('S3_SECRET'),
+      endpoint: Env.get('S3_ENDPOINT'),
+      bucket: Env.get('S3_BUCKET'),
+      region: Env.get('S3_REGION'),
+      service: 's3',
+    },
   },
 })

@@ -39,4 +39,10 @@ export default Env.rules({
 
   SENTRY_DSN: Env.schema.string(),
   SENTRY_TRACES_SAMPLE_RATE: Env.schema.number(),
+
+  S3_KEY: Env.schema.string(),
+  S3_SECRET: Env.schema.string(),
+  S3_REGION: Env.schema.string(),
+  S3_BUCKET: Env.schema.string(),
+  S3_ENDPOINT: Env.schema.string(),
 })

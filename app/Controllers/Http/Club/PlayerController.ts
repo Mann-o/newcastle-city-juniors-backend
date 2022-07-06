@@ -24,8 +24,8 @@ export default class PlayerController {
       const identityVerificationPhoto = request.file('identityVerificationPhoto')!
       const ageVerificationPhoto = request.file('ageVerificationPhoto')!
 
-      await identityVerificationPhoto.moveToDisk('identity-verification-photos');
-      await ageVerificationPhoto.moveToDisk('age-verification-photos');
+      await identityVerificationPhoto.moveToDisk('identity-verification-photos', {}, 'spaces')
+      await ageVerificationPhoto.moveToDisk('age-verification-photos', {}, 'spaces')
 
       let player;
 
@@ -159,33 +159,11 @@ export default class PlayerController {
         })
       }
 
-      // const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
-      //   apiVersion: Env.get('STRIPE_API_VERSION'),
-      // })
-
-      // const paymentIntent = await stripeClient.paymentIntents.retrieve(player.stripePaymentIntentId)
-
-      // if (player.stripeSubscriptionId === null) {
-      //   return response.ok({
-      //     status: 'OK',
-      //     code: 200,
-      //     data: {
-      //       ...player.serialize(),
-      //       payment_intent: paymentIntent,
-      //       subscription: null,
-      //     },
-      //   })
-      // }
-
-      // const subscription = await stripeClient.subscriptions.retrieve(player.stripeSubscriptionId)
-
       return response.ok({
         status: 'OK',
         code: 200,
         data: {
           ...player.serialize(),
-          // payment_intent: paymentIntent,
-          // subscription,
         },
       })
     } catch (error) {
@@ -217,12 +195,4 @@ export default class PlayerController {
       data: playerCount,
     })
   }
-
-  // public async updatePlayer({ request, response }: HttpContextContract) {
-
-  // }
-
-  // public async deletePlayer({ request, response }: HttpContextContract) {
-
-  // }
 }

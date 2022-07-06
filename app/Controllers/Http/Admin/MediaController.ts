@@ -1,5 +1,5 @@
+import Drive from '@ioc:Adonis/Core/Drive';
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-import Application from '@ioc:Adonis/Core/Application'
 
 export default class MediaController {
   public async getVerificationPhoto({ auth, response, params }: HttpContextContract) {
@@ -13,6 +13,14 @@ export default class MediaController {
       return response.unauthorized()
     }
 
-    return response.download(Application.tmpPath(`uploads/${params.type}-verification-photos/${params.path}`));
+    try {
+      const image = await Drive.use('spaces').getStream(`${params.folder}/${params.filename}`)
+
+      return response.stream(image)
+    } catch (error) {
+      console.log(error)
+      return response.badRequest()
+    }
   }
+
 }

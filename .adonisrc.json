@@ -32,7 +32,8 @@
     "@adonisjs/lucid",
     "@adonisjs/auth",
     "@adonisjs/redis",
-    "./providers/SentryProvider"
+    "./providers/SentryProvider",
+    "@adonisjs/drive-s3"
   ],
   "aceProviders": [
     "@adonisjs/repl"

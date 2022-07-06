@@ -1,6 +1,7 @@
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 
 import Player from 'App/Models/Player'
+import Parent from 'App/Models/Parent'
 
 export default class PlayerController {
   public async getAllPlayers({ auth, response }: HttpContextContract) {
@@ -34,9 +35,9 @@ export default class PlayerController {
       return response.unauthorized()
     }
 
-    const player = await Player.first(params.playerId)
+    const player = await Player.query().where({ id: params.playerId })
 
-    const parent = await player!.related('parent').query()
+    const parent = await Parent.query().where({ id: player[0].parentId })
 
     return response.ok({
       status: 'OK',

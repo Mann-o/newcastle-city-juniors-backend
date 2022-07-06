@@ -36,6 +36,15 @@ Route.group(() => {
     .prefix('/club')
     .middleware('auth:api')
 
+  // Admin routes
+  Route.group(() => {
+    Route.get('/players', 'Admin/PlayerController.getAllPlayers')
+    Route.get('/player/:playerId/parent', 'Admin/PlayerController.getParentForPlayer')
+    Route.get('/verification-photos/:type/:path', 'Admin/MediaController.getVerificationPhoto')
+  })
+    .prefix('/admin')
+    .middleware('auth:api')
+
   // Stripe routes
   Route.group(() => {
     Route.group(() => {

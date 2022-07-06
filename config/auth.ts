@@ -15,10 +15,10 @@ const authConfig: AuthConfig = {
       },
 
       provider: {
-        driver: 'database',
+        driver: 'lucid',
         identifierKey: 'id',
         uids: ['email'],
-        usersTable: 'users',
+        model: () => import('App/Models/User'),
       },
     },
 
@@ -26,10 +26,10 @@ const authConfig: AuthConfig = {
       driver: 'basic',
 
       provider: {
-        driver: 'database',
+        driver: 'lucid',
         identifierKey: 'id',
         uids: ['email'],
-        usersTable: 'users',
+        model: () => import('App/Models/User'),
       },
     },
   },

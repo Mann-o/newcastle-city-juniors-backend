@@ -153,7 +153,7 @@ export default class UserController {
   public async getAuthenticatedUser({ auth, response }: HttpContextContract) {
     try {
       const authenticatedUser = auth.use('api').user!
-      const user = await User.query().where('id', authenticatedUser.id).preload('players')
+      const user = await User.query().where('id', authenticatedUser.id).preload('permissions')
 
       return response.ok({
         status: 'OK',

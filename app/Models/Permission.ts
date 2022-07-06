@@ -24,5 +24,5 @@ export default class Permission extends BaseModel {
     pivotRelatedForeignKey: 'user_id',
     pivotTimestamps: true,
   })
-  public roles: ManyToMany<typeof User>
+  public permissions: ManyToMany<typeof User>
 }

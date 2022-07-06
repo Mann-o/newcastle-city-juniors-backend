@@ -1,7 +1,6 @@
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 
 import Player from 'App/Models/Player'
-import Parent from 'App/Models/Parent';
 
 export default class PlayerController {
   public async getAllPlayers({ auth, response }: HttpContextContract) {

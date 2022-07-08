@@ -69,6 +69,9 @@ export default class Player extends BaseModel {
   @column()
   public subscription?: Stripe.Subscription | 'not_setup'
 
+  @column()
+  public wgsRegistered: boolean
+
   @computed()
   public get full_name() {
     let fullName = this.firstName

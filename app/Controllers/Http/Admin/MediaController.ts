@@ -14,9 +14,13 @@ export default class MediaController {
     }
 
     try {
-      const image = await Drive.use('spaces').getStream(`${params.folder}/${params.filename}`)
+      const image = await Drive.use('spaces').getUrl(`${params.folder}/${params.filename}`)
 
-      return response.stream(image)
+      return response.ok({
+        status: 'OK',
+        code: 200,
+        data: image
+      })
     } catch (error) {
       console.log(error)
       return response.badRequest()

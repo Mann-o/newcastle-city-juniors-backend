@@ -41,6 +41,7 @@ Route.group(() => {
   Route.group(() => {
     Route.get('/players', 'Admin/PlayerController.getAllPlayers')
     Route.get('/player/:playerId/parent', 'Admin/PlayerController.getParentForPlayer')
+    Route.post('/player/:playerId/toggle-wgs-registration', 'Admin/PlayerController.togglePlayerWgsRegistrationStatus')
     Route.get('/verification-photos/:folder/:filename', 'Admin/MediaController.getVerificationPhoto')
   })
     .prefix('/admin')

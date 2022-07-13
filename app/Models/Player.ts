@@ -58,6 +58,9 @@ export default class Player extends BaseModel {
   public stripeSubscriptionId: string
 
   @column()
+  public wgsRegistered: boolean
+
+  @column()
   public paid?: boolean
 
   @column()
@@ -68,9 +71,6 @@ export default class Player extends BaseModel {
 
   @column()
   public subscription?: Stripe.Subscription | 'not_setup'
-
-  @column()
-  public wgsRegistered: boolean
 
   @computed()
   public get full_name() {

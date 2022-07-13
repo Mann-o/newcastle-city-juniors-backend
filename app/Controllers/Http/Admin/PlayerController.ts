@@ -45,4 +45,30 @@ export default class PlayerController {
       data: parent[0],
     })
   }
+
+  public async togglePlayerWgsRegistrationStatus({ auth, response, params }: HttpContextContract) {
+    const user = auth.use('api').user!
+
+    const requiredPermissions = ['staff', 'view-players'];
+    const userPermissions = (await user!.related('permissions').query()).map(({ name }) => name)
+    const hasRequiredPermissions = requiredPermissions.every(requiredPermission => userPermissions.includes(requiredPermission));
+
+    if (!hasRequiredPermissions) {
+      return response.unauthorized()
+    }
+
+    const player = await Player.query().where({ id: params.playerId }).firstOrFail()
+
+    player.wgsRegistered = !player.wgsRegistered
+
+    await player.save();
+
+    return response.ok({
+      status: 'OK',
+      code: 200,
+      data: {
+        message: 'success',
+      },
+    })
+  }
 }

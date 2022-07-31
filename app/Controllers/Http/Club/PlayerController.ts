@@ -118,6 +118,9 @@ export default class PlayerController {
               },
             }
           ],
+          payment_intent_data: {
+            setup_future_usage: 'off_session',
+          },
           metadata: {
             playerId: player.id,
           },

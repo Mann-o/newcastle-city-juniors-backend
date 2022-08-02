@@ -1,7 +1,8 @@
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-// import Env from '@ioc:Adonis/Core/Env'
+import Env from '@ioc:Adonis/Core/Env'
 
-// import Stripe from 'stripe'
+import Stripe from 'stripe'
+import { format, fromUnixTime } from 'date-fns';
 
 import Player from 'App/Models/Player'
 import Parent from 'App/Models/Parent'
@@ -84,6 +85,83 @@ export default class PlayerController {
       data: {
         message: 'success',
       },
+    })
+  }
+
+  public async getSubscriptionsPaymentSchedule({ auth, response }: HttpContextContract) {
+    const user = auth.use('api').user!
+
+    const requiredPermissions = ['staff', 'view-players'];
+    const userPermissions = (await user!.related('permissions').query()).map(({ name }) => name)
+    const hasRequiredPermissions = requiredPermissions.every(requiredPermission => userPermissions.includes(requiredPermission));
+
+    if (!hasRequiredPermissions) {
+      return response.unauthorized()
+    }
+
+    const players = await Player.query()
+      .where('membership_fee_option', 'subscription')
+      .preload('user')
+      .orderBy('last_name', 'asc')
+
+    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+      apiVersion: Env.get('STRIPE_API_VERSION'),
+    })
+
+    const subscriptions: Stripe.Subscription[] = []
+
+    for await (const subscription of stripeClient.subscriptions.list({
+      limit: 100,
+      created: {
+        gt: 1626134400,
+      },
+      expand: ['data.latest_invoice'],
+    })) {
+      subscriptions.push(subscription)
+    }
+
+    for (const player of players as Player[]) {
+      const subscription = subscriptions.find(({ id }) => id === player.stripeSubscriptionId)
+
+      player.subscription = subscription ? subscription : 'not_setup'
+    }
+
+    const ageGroups = Object.entries(
+      players.reduce((acc, player: any) => {
+        const mappedPlayer = {
+          name: player.full_name,
+          paid: player.paid,
+          team: player.team,
+          stripeSubscriptionId: player.stripeSubscriptionId,
+          subscriptionStatus: player.subscription === 'not_setup' ? 'not_setup' : player.subscription.status,
+          ...(player.subscription !== 'not_setup' && {
+            firstPaymentDate:
+              player.subscription.status === 'trialing'
+                ? format(fromUnixTime(player.subscription.trial_end), 'dd/MM/yyyy')
+                : format(fromUnixTime(player.subscription.billing_cycle_anchor), 'dd/MM/yyyy'),
+          }),
+          user: player.user,
+        }
+
+        if (acc.hasOwnProperty(player.ageGroup)) {
+          acc[player.ageGroup].push(mappedPlayer)
+        } else {
+          acc[player.ageGroup] = [mappedPlayer]
+        }
+
+        return acc
+      }, {}),
+    )
+      .map(([ageGroup, players]) => ({
+        ageGroup,
+        players,
+      }))
+      .sort((a, b) => parseInt(a.ageGroup) - parseInt(b.ageGroup))
+
+    return response.ok({
+      status: 'OK',
+      code: 200,
+      data: ageGroups,
     })
   }
 }

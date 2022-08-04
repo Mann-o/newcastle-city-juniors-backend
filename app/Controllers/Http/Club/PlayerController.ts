@@ -121,6 +121,7 @@ export default class PlayerController {
           payment_intent_data: {
             setup_future_usage: 'off_session',
           },
+          allow_promotion_codes: true,
           metadata: {
             playerId: player.id,
           },

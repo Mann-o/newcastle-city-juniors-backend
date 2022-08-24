@@ -91,7 +91,12 @@ export default class PlayerController {
               parseISO(`${getYear(trialEndDate)}-${(getMonth(trialEndDate) + 1).toString().padStart(2, '0')}-${String(player.paymentDate).padStart(2, '0')}`),
             ),
             cancel_at: getUnixTime(parseISO(`2023-06-${String(player.paymentDate).padStart(2, '0')}`)),
-            items: [{ price: Env.get(`STRIPE_MEMBERSHIP_PRICE_ID_SUBSCRIPTION_${player.sex.toUpperCase()}`) }],
+            ...(player.ageGroup === 'seniors' && {
+              items: [{ price: Env.get('STRIPE_MEMBERSHIP_PRICE_ID_SUBSCRIPTION_SENIOR') }],
+            }),
+            ...(player.ageGroup !== 'seniors' && {
+              items: [{ price: Env.get(`STRIPE_MEMBERSHIP_PRICE_ID_SUBSCRIPTION_${player.sex.toUpperCase()}`) }],
+            }),
             proration_behavior: 'none',
           })
 
@@ -106,10 +111,13 @@ export default class PlayerController {
           customer: user.stripeCustomerId,
           line_items: [
             {
-              ...(player.membershipFeeOption === 'upfront' && {
+              ...(player.ageGroup === 'seniors' && {
+                price: Env.get('STRIPE_MEMBERSHIP_PRICE_ID_UPFRONT_SENIOR'),
+              }),
+              ...(player.ageGroup !== 'seniors' && player.membershipFeeOption === 'upfront' && {
                 price: Env.get(`STRIPE_MEMBERSHIP_PRICE_ID_UPFRONT_${player.sex.toUpperCase()}`),
               }),
-              ...(player.membershipFeeOption === 'subscription' && {
+              ...(player.ageGroup !== 'seniors' && player.membershipFeeOption === 'subscription' && {
                 price: Env.get(`STRIPE_MEMBERSHIP_PRICE_ID_SUBSCRIPTION_UPFRONT_${player.sex.toUpperCase()}`),
               }),
               quantity: 1,

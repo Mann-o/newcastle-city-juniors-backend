@@ -23,6 +23,23 @@ export default class StripeCheckoutCompleteController {
         expand: ['line_items'],
       })
 
+      if (checkout?.line_items?.data.find(({ description }) => description.includes('Halloween'))) {
+        const tickets = checkout?.line_items?.data?.[0];
+
+        Mail.send(message => {
+          message
+            .from('info@newcastlecityjuniors.co.uk', 'Newcastle City Juniors')
+            .to(checkout.customer_details!.email!)
+            .subject('Your NCJ 2022 Halloween Party Tickets')
+            .htmlView('emails/halloween-2022', {
+              checkoutId,
+              quantity: tickets.quantity,
+              itemCost: `£${tickets.price?.unit_amount?.toFixed(2)}`,
+              totalCost: `£${checkout.amount_total?.toFixed(2)}`,
+            })
+        })
+      }
+
       if (checkout?.line_items?.data.find(({ description }) => description.includes('Presentation'))) {
         const qr = new QRService()
         const qrcode = await qr.generateQRCode(`
@@ -71,10 +88,10 @@ export default class StripeCheckoutCompleteController {
         return response.ok({ status: 'success' })
       }
 
-      response.ok({ status: 'success' })
+      return response.ok({ status: 'success' })
     }
 
-    response.ok({
+    return response.ok({
       status: 'success',
       message: 'Request was received successfully but not processed',
     })

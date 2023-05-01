@@ -164,4 +164,47 @@ export default class PlayerController {
       data: ageGroups,
     })
   }
+
+  public async getPresentationTicketsPaymentSchedule({ auth, response }: HttpContextContract) {
+    const user = auth.use('api').user!
+
+    const requiredPermissions = ['staff', 'view-payments'];
+    const userPermissions = (await user!.related('permissions').query()).map(({ name }) => name)
+    const hasRequiredPermissions = requiredPermissions.every(requiredPermission => userPermissions.includes(requiredPermission));
+
+    if (!hasRequiredPermissions) {
+      return response.unauthorized()
+    }
+
+    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+      apiVersion: Env.get('STRIPE_API_VERSION'),
+    })
+
+    const payments: Stripe.PaymentIntent[] = []
+
+    for await (const payment of stripeClient.paymentIntents.list({
+      created: {
+        gte: new Date('2023-05-01').getTime() / 1000,
+      },
+      expand: ['data.invoice'],
+    })) {
+      payments.push(payment)
+    }
+
+    const filteredPayments = payments
+      .filter((payment: Stripe.PaymentIntent) => payment.metadata.hasOwnProperty('presentationTicketPlayerName'))
+      .map((payment: Stripe.PaymentIntent) => ({
+        created: payment.created,
+        customer: payment.receipt_email,
+        visitor_tickets_count: (payment.amount_received / 100) / 5,
+        player: payment.metadata.presentationTicketPlayerName,
+        team: payment.metadata.presentationTicketTeam,
+      }));
+
+    return response.ok({
+      status: 'OK',
+      code: 200,
+      data: filteredPayments,
+    })
+  }
 }

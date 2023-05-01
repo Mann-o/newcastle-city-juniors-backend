@@ -44,6 +44,7 @@ Route.group(() => {
     Route.post('/player/:playerId/toggle-wgs-registration', 'Admin/PlayerController.togglePlayerWgsRegistrationStatus')
     Route.get('/subscriptions-schedule', 'Admin/PlayerController.getSubscriptionsPaymentSchedule')
     Route.get('/verification-photos/:folder/:filename', 'Admin/MediaController.getVerificationPhoto')
+    Route.get('/presentation-tickets-schedule', 'Admin/PlayerController.getPresentationTicketsPaymentSchedule')
   })
     .prefix('/admin')
     .middleware('auth:api')

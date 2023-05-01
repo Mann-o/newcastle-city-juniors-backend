@@ -55,6 +55,7 @@ Route.group(() => {
     }).prefix('/payment-intents')
 
     Route.get('/shoppable-products', 'Stripe/StripeController.getShoppableProducts')
+    Route.get('/shop', 'Stripe/StripeController.getAllShoppableProducts')
     Route.post('/create-checkout', 'Stripe/StripeController.createCheckout')
     Route.get('/get-payments-for-user', 'Stripe/StripeController.getPaymentsForUser').middleware('auth:api')
     Route.post('/create-subscription', 'Stripe/StripeController.createSubscriptionForUser').middleware('auth:api')

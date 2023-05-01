@@ -42,6 +42,42 @@ export default class StripeController {
     })
   }
 
+  public async getAllShoppableProducts({ response }: HttpContextContract) {
+    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+      apiVersion: Env.get('STRIPE_API_VERSION'),
+    })
+
+    const products: Stripe.Product[] = []
+
+    for await (const product of stripeClient.products.list({ active: true })) {
+      if (product.metadata.list === 'true') {
+        products.push(product)
+      }
+    }
+
+    const productsWithPrices = await Promise.all(
+      products.map(async product => {
+        const prices: Stripe.Price[] = []
+
+        for await (const price of stripeClient.prices.list({
+          product: product.id,
+          active: true
+        })) {
+          prices.push(price)
+        }
+
+        return {
+          ...product,
+          prices: prices,
+        }
+      })
+    )
+
+    response.send({
+      products: productsWithPrices.filter(product => product.metadata.list === 'true')
+    })
+  }
+
   public async createCheckout({ request, response }: HttpContextContract) {
     const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
       apiVersion: Env.get('STRIPE_API_VERSION'),

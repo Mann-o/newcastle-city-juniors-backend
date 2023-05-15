@@ -443,7 +443,13 @@ export default class PlayerController {
     return response.ok({
       status: 'OK',
       code: 200,
-      data: orders,
+      data: {
+        totals: {
+          player: playerTickets.total,
+          visitor: visitorTickets.total,
+        },
+        orders,
+      },
     })
   }
 }

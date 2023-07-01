@@ -192,7 +192,7 @@ export default class StripeController {
         trial_end: getUnixTime(
           parseISO(`${getYear(trialEndDate)}-${(getMonth(trialEndDate) + 1).toString().padStart(2, '0')}-${subscriptionDate}`),
         ),
-        cancel_at: getUnixTime(parseISO('2022-05-16')),
+        cancel_at: getUnixTime(parseISO('2024-05-16')),
         items: [{ price: Env.get(`STRIPE_SUBSCRIPTION_PRICE_ID_${player.sex.toUpperCase()}`) }],
         proration_behavior: 'none',
       })

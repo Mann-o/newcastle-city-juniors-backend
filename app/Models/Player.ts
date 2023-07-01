@@ -43,10 +43,16 @@ export default class Player extends BaseModel {
   public team: string
 
   @column()
+  public secondTeam: string
+
+  @column()
   public paymentDate: number
 
   @column()
   public mediaConsented: boolean
+
+  @column()
+  public alreadyProvidedVerification: boolean
 
   @column()
   public identityVerificationPhoto: string

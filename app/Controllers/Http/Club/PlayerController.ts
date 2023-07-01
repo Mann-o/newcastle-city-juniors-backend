@@ -22,11 +22,19 @@ export default class PlayerController {
         throw new Error()
       }
 
-      const identityVerificationPhoto = request.file('identityVerificationPhoto')!
-      const ageVerificationPhoto = request.file('ageVerificationPhoto')!
+      const alreadyProvidedVerification = request.input('alreadyProvidedVerification')
+      const dualTeam = (request.input('secondTeam') != null);
 
-      await identityVerificationPhoto.moveToDisk('identity-verification-photos', {}, 'spaces')
-      await ageVerificationPhoto.moveToDisk('age-verification-photos', {}, 'spaces')
+      let identityVerificationPhoto = null;
+      let ageVerificationPhoto = null;
+
+      if (alreadyProvidedVerification === false) {
+        identityVerificationPhoto = request.file('identityVerificationPhoto')!
+        ageVerificationPhoto = request.file('ageVerificationPhoto')!
+
+        await identityVerificationPhoto.moveToDisk('identity-verification-photos', {}, 'spaces')
+        await ageVerificationPhoto.moveToDisk('age-verification-photos', {}, 'spaces')
+      }
 
       let player;
 
@@ -40,8 +48,10 @@ export default class PlayerController {
         player.sex = request.input('sex')
         player.medicalConditions = request.input('medicalConditions')
         player.mediaConsented = request.input('mediaConsented')
+        player.alreadyProvidedVerification = request.input('alreadyProvidedVerification')
         player.ageGroup = request.input('ageGroup')
         player.team = request.input('team')
+        player.secondTeam = request.input('secondTeam');
         player.paymentDate = request.input('paymentDate')
         player.membershipFeeOption = request.input('membershipFeeOption')
         player.acceptedCodeOfConduct = request.input('acceptedCodeOfConduct')
@@ -59,8 +69,10 @@ export default class PlayerController {
             'sex',
             'medicalConditions',
             'mediaConsented',
+            'alreadyProvidedVerification',
             'ageGroup',
             'team',
+            'secondTeam',
             'paymentDate',
             'membershipFeeOption',
             'acceptedCodeOfConduct',
@@ -68,8 +80,10 @@ export default class PlayerController {
             'parentId',
           ]),
           userId: user.id,
-          identityVerificationPhoto: identityVerificationPhoto.fileName,
-          ageVerificationPhoto: ageVerificationPhoto.fileName,
+          ...(alreadyProvidedVerification === false && identityVerificationPhoto != null && ageVerificationPhoto != null && {
+            identityVerificationPhoto: identityVerificationPhoto.fileName,
+            ageVerificationPhoto: ageVerificationPhoto.fileName,
+          }),
         })
       }
 
@@ -90,13 +104,8 @@ export default class PlayerController {
             trial_end: getUnixTime(
               parseISO(`${getYear(trialEndDate)}-${(getMonth(trialEndDate) + 1).toString().padStart(2, '0')}-${String(player.paymentDate).padStart(2, '0')}`),
             ),
-            cancel_at: getUnixTime(parseISO(`2023-06-${String(player.paymentDate).padStart(2, '0')}`)),
-            ...(player.ageGroup === 'seniors' && {
-              items: [{ price: Env.get('STRIPE_MEMBERSHIP_PRICE_ID_SUBSCRIPTION_SENIOR') }],
-            }),
-            ...(player.ageGroup !== 'seniors' && {
-              items: [{ price: Env.get(`STRIPE_MEMBERSHIP_PRICE_ID_SUBSCRIPTION_${player.sex.toUpperCase()}`) }],
-            }),
+            cancel_at: getUnixTime(parseISO(`${(getYear(trialEndDate) + 1)}-06-${String(player.paymentDate).padStart(2, '0')}`)),
+            items: [{ price: Env.get(`STRIPE_PRICE_ID_SUBSCRIPTION_${player.sex.toUpperCase()}_${dualTeam ? 'MULTI' : 'SINGLE'}_TEAM`) }],
             proration_behavior: 'none',
           })
 
@@ -107,24 +116,26 @@ export default class PlayerController {
 
         const session = await stripeClient.checkout.sessions.create({
           mode: 'payment',
+          payment_method_options: {
+            card: {
+              setup_future_usage: 'off_session',
+            },
+          },
           payment_method_types: ['card'],
           customer: user.stripeCustomerId,
           line_items: [
             {
-              ...(player.ageGroup === 'seniors' && {
-                price: Env.get('STRIPE_MEMBERSHIP_PRICE_ID_UPFRONT_SENIOR'),
+              ...(player.membershipFeeOption === 'upfront' && {
+              price: Env.get(`STRIPE_PRICE_ID_UPFRONT_${player.sex.toUpperCase()}_${dualTeam ? 'MULTI' : 'SINGLE'}_TEAM`),
               }),
-              ...(player.ageGroup !== 'seniors' && player.membershipFeeOption === 'upfront' && {
-                price: Env.get(`STRIPE_MEMBERSHIP_PRICE_ID_UPFRONT_${player.sex.toUpperCase()}`),
-              }),
-              ...(player.ageGroup !== 'seniors' && player.membershipFeeOption === 'subscription' && {
-                price: Env.get(`STRIPE_MEMBERSHIP_PRICE_ID_SUBSCRIPTION_UPFRONT_${player.sex.toUpperCase()}`),
+              ...(player.membershipFeeOption === 'subscription' && {
+                price: Env.get(`STRIPE_PRICE_ID_SUBSCRIPTION_UPFRONT_${player.sex.toUpperCase()}`),
               }),
               quantity: 1,
               adjustable_quantity: {
                 enabled: false,
               },
-            }
+            },
           ],
           payment_intent_data: {
             setup_future_usage: 'off_session',

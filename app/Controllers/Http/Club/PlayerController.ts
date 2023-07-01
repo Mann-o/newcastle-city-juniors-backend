@@ -25,15 +25,16 @@ export default class PlayerController {
       const alreadyProvidedVerification = request.input('alreadyProvidedVerification')
       const dualTeam = (request.input('secondTeam') != null);
 
-      let identityVerificationPhoto = null;
-      let ageVerificationPhoto = null;
+      const identityVerificationPhoto = (alreadyProvidedVerification === false)
+        ? request.file('identityVerificationPhoto')
+        : undefined;
+      const ageVerificationPhoto = (alreadyProvidedVerification === false)
+        ? request.file('ageVerificationPhoto')
+        : undefined;
 
-      if (alreadyProvidedVerification === false) {
-        identityVerificationPhoto = request.file('identityVerificationPhoto')!
-        ageVerificationPhoto = request.file('ageVerificationPhoto')!
-
-        await identityVerificationPhoto.moveToDisk('identity-verification-photos', {}, 'spaces')
-        await ageVerificationPhoto.moveToDisk('age-verification-photos', {}, 'spaces')
+      if (alreadyProvidedVerification === false && identityVerificationPhoto != null && ageVerificationPhoto != null) {
+        identityVerificationPhoto.moveToDisk('identity-verification-photos', {}, 'spaces')
+        ageVerificationPhoto.moveToDisk('age-verification-photos', {}, 'spaces')
       }
 
       let player;
@@ -80,10 +81,12 @@ export default class PlayerController {
             'parentId',
           ]),
           userId: user.id,
-          ...(alreadyProvidedVerification === false && identityVerificationPhoto != null && ageVerificationPhoto != null && {
-            identityVerificationPhoto: identityVerificationPhoto.fileName,
-            ageVerificationPhoto: ageVerificationPhoto.fileName,
-          }),
+          identityVerificationPhoto: (alreadyProvidedVerification === false && identityVerificationPhoto != null)
+            ? identityVerificationPhoto?.fileName
+            : undefined,
+          ageVerificationPhoto: (alreadyProvidedVerification === false && ageVerificationPhoto != null)
+            ? ageVerificationPhoto?.fileName
+            : undefined,
         })
       }
 

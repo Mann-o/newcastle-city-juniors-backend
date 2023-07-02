@@ -23,7 +23,7 @@ export default class PlayerController {
       }
 
       const alreadyProvidedVerification = request.input('alreadyProvidedVerification')
-      const dualTeam = (request.input('secondTeam') != null);
+      const dualTeam = (request.input('secondTeam') !== 'none');
 
       const identityVerificationPhoto = (alreadyProvidedVerification === false)
         ? request.file('identityVerificationPhoto')

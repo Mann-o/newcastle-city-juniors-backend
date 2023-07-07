@@ -107,6 +107,7 @@ export default class UserController {
           },
         })
       } catch (error) {
+        console.log({ error });
         return response.unauthorized()
       }
     }

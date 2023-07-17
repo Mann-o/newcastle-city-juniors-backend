@@ -250,15 +250,21 @@ export default class StripeController {
     let paymentIntent: Stripe.PaymentIntent
     let isUpdate: boolean = false
 
-    if (request.input('finalise') === true) {
-      paymentIntent = await stripeClient.paymentIntents.update(request.input('paymentIntentId'), {
-        receipt_email: request.input('form.emailAddress'),
-      })
-
-      isUpdate = true
-    } else if (request.input('paymentIntentId') != null) {
+    if (request.input('paymentIntentId') != null) {
       paymentIntent = await stripeClient.paymentIntents.update(request.input('paymentIntentId'), {
         amount: request.input('amount'),
+        currency: 'gbp',
+        metadata: {
+          emailAddress: request.input('form.emailAddress'),
+          clubName: request.input('form.clubName'),
+          teamName: request.input('form.teamName'),
+          ageGroup: request.input('form.ageGroup'),
+          coachName: request.input('form.coachName'),
+          contactNumber: request.input('form.contactNumber'),
+          acceptedCoachQualificationAgreement: request.input('form.acceptedCoachQualificationAgreement'),
+          acceptedOrganiserDecisionAgreement: request.input('form.acceptedOrganiserDecisionAgreement'),
+          orderType: 'summer-camp-2023',
+        },
       })
 
       isUpdate = true

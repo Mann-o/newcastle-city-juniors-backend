@@ -30,6 +30,7 @@ export default Env.rules({
   MAIL_PORT: Env.schema.number(),
 
   STRIPE_API_SECRET: Env.schema.string(),
+  STRIPE_WEBHOOK_SECRET: Env.schema.string(),
   STRIPE_PRICE_ID_SUBSCRIPTION_UPFRONT_MALE: Env.schema.string(),
   STRIPE_PRICE_ID_SUBSCRIPTION_UPFRONT_FEMALE: Env.schema.string(),
   STRIPE_PRICE_ID_SUBSCRIPTION_MALE_SINGLE_TEAM: Env.schema.string(),

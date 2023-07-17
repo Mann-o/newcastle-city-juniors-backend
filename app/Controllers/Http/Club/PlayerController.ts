@@ -22,20 +22,13 @@ export default class PlayerController {
         throw new Error()
       }
 
-      const alreadyProvidedVerification = request.input('alreadyProvidedVerification')
       const dualTeam = (request.input('secondTeam') !== 'none');
 
-      const identityVerificationPhoto = (alreadyProvidedVerification === false)
-        ? request.file('identityVerificationPhoto')
-        : undefined;
-      const ageVerificationPhoto = (alreadyProvidedVerification === false)
-        ? request.file('ageVerificationPhoto')
-        : undefined;
+      const identityVerificationPhoto = request.file('identityVerificationPhoto')!
+      const ageVerificationPhoto = request.file('ageVerificationPhoto')!
 
-      if (alreadyProvidedVerification === false && identityVerificationPhoto != null && ageVerificationPhoto != null) {
-        identityVerificationPhoto.moveToDisk('identity-verification-photos', {}, 'spaces')
-        ageVerificationPhoto.moveToDisk('age-verification-photos', {}, 'spaces')
-      }
+      await identityVerificationPhoto.moveToDisk('identity-verification-photos', {}, 'spaces')
+      await ageVerificationPhoto.moveToDisk('age-verification-photos', {}, 'spaces')
 
       let player;
 
@@ -49,7 +42,6 @@ export default class PlayerController {
         player.sex = request.input('sex')
         player.medicalConditions = request.input('medicalConditions')
         player.mediaConsented = request.input('mediaConsented')
-        player.alreadyProvidedVerification = request.input('alreadyProvidedVerification')
         player.ageGroup = request.input('ageGroup')
         player.team = request.input('team')
         player.secondTeam = request.input('secondTeam');
@@ -70,7 +62,6 @@ export default class PlayerController {
             'sex',
             'medicalConditions',
             'mediaConsented',
-            'alreadyProvidedVerification',
             'ageGroup',
             'team',
             'secondTeam',
@@ -81,12 +72,8 @@ export default class PlayerController {
             'parentId',
           ]),
           userId: user.id,
-          identityVerificationPhoto: (alreadyProvidedVerification === false && identityVerificationPhoto != null)
-            ? identityVerificationPhoto?.fileName
-            : undefined,
-          ageVerificationPhoto: (alreadyProvidedVerification === false && ageVerificationPhoto != null)
-            ? ageVerificationPhoto?.fileName
-            : undefined,
+          identityVerificationPhoto: identityVerificationPhoto.fileName,
+          ageVerificationPhoto: ageVerificationPhoto.fileName,
         })
       }
 

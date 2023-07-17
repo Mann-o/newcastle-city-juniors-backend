@@ -52,9 +52,6 @@ export default class Player extends BaseModel {
   public mediaConsented: boolean
 
   @column()
-  public alreadyProvidedVerification: boolean
-
-  @column()
   public identityVerificationPhoto: string
 
   @column()

@@ -53,7 +53,10 @@ Route.group(() => {
   Route.group(() => {
     Route.group(() => {
       Route.post('/presentation-2021-event', 'Stripe/StripeController.getPresentation2021EventPaymentIntent')
+      Route.post('/summer-camp-2023', 'Stripe/StripeController.createSummerCamp2023PaymentIntent')
     }).prefix('/payment-intents')
+
+    Route.post('/handle-webhook', 'Stripe/StripeHooksController.handleStripeWebhook')
 
     Route.get('/shoppable-products', 'Stripe/StripeController.getShoppableProducts')
     Route.get('/shop', 'Stripe/StripeController.getAllShoppableProducts')
@@ -62,11 +65,5 @@ Route.group(() => {
     Route.post('/create-subscription', 'Stripe/StripeController.createSubscriptionForUser').middleware('auth:api')
     Route.post('/create-customer-portal-session', 'Stripe/StripeController.createCustomerPortalSession').middleware('auth:api')
     Route.post('/get-order', 'Stripe/StripeController.getOrder')
-
-    // Hooks
-    Route.group(() => {
-      Route.post('/checkout-complete', 'Stripe/StripeHooksController.handleCheckoutCompleteHook')
-      Route.get('/ticket-qr', 'Stripe/StripeHooksController.ticketsAsQRCode')
-    }).prefix('/hooks')
   }).prefix('/stripe')
 }).prefix('/api/v1')

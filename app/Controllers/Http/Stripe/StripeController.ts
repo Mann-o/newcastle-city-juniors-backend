@@ -241,4 +241,45 @@ export default class StripeController {
       error: 'No order ID was provided in the request',
     })
   }
+
+  public async createSummerCamp2023PaymentIntent({ request, response }: HttpContextContract) {
+    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+      apiVersion: Env.get('STRIPE_API_VERSION'),
+    })
+
+    let paymentIntent: Stripe.PaymentIntent
+    let isUpdate: boolean = false
+
+    if (request.input('paymentIntentId') != null) {
+      paymentIntent = await stripeClient.paymentIntents.update(request.input('paymentIntentId'), {
+        amount: request.input('amount'),
+      })
+
+      isUpdate = true
+    } else {
+      paymentIntent = await stripeClient.paymentIntents.create({
+        amount: request.input('amount'),
+        currency: 'gbp',
+        receipt_email: request.input('form.emailAddress'),
+        metadata: {
+          emailAddress: request.input('form.emailAddress'),
+          clubName: request.input('form.clubName'),
+          teamName: request.input('form.teamName'),
+          ageGroup: request.input('form.ageGroup'),
+          coachName: request.input('form.coachName'),
+          contactNumber: request.input('form.contactNumber'),
+          acceptedCoachQualificationAgreement: request.input('form.acceptedCoachQualificationAgreement'),
+          acceptedOrganiserDecisionAgreement: request.input('form.acceptedOrganiserDecisionAgreement'),
+          orderType: 'summer-camp-2023',
+        },
+      })
+    }
+
+    return response.ok({
+      status: 'OK',
+      code: 200,
+      paymentIntent,
+      isUpdate,
+    })
+  }
 }

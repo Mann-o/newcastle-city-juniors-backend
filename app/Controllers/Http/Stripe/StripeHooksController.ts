@@ -1,99 +1,91 @@
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
+import Database from '@ioc:Adonis/Lucid/Database'
 import Env from '@ioc:Adonis/Core/Env'
 import Mail from '@ioc:Adonis/Addons/Mail'
-
-import QRService from 'App/Services/QRService'
 
 import Stripe from 'stripe'
 
 export default class StripeCheckoutCompleteController {
-  public async handleCheckoutCompleteHook({ request, response }: HttpContextContract) {
-    const { type, data } = request.body()
+  public async handleStripeWebhook({ request, response }: HttpContextContract) {
+    const webhookSecret = Env.get('STRIPE_WEBHOOK_SECRET');
+    const webhookSignature = request.header('stripe-signature');
 
-    if (type && type === 'checkout.session.completed') {
-      const {
-        object: { id: checkoutId },
-      } = data
+    let event
 
+    try {
       const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
         apiVersion: Env.get('STRIPE_API_VERSION'),
-      })
+      });
 
-      const checkout = await stripeClient.checkout.sessions.retrieve(checkoutId, {
-        expand: ['line_items'],
-      })
+      event = stripeClient.webhooks.constructEvent(
+        request.raw() as string,
+        webhookSignature as string,
+        webhookSecret
+      );
+    } catch {
+      return response.badRequest({
+        code: 400,
+        status: 'Bad Request',
+        message: 'Invalid Stripe webhook signature',
+      });
+    }
 
-      if (checkout?.line_items?.data.find(({ description }) => description.includes('Halloween'))) {
-        const tickets = checkout?.line_items?.data?.[0];
-
-        Mail.send(message => {
-          message
-            .from('info@newcastlecityjuniors.co.uk', 'Newcastle City Juniors')
-            .to(checkout.customer_details!.email!)
-            .subject('Your NCJ 2022 Halloween Party Tickets')
-            .htmlView('emails/halloween-2022', {
-              checkoutId,
-              quantity: tickets.quantity,
-              itemCost: `£${tickets.price?.unit_amount?.toFixed(2)}`,
-              totalCost: `£${checkout.amount_total?.toFixed(2)}`,
-            })
-        })
-      }
-
-      if (checkout?.line_items?.data.find(({ description }) => description.includes('Presentation'))) {
-        const qr = new QRService()
-        const qrcode = await qr.generateQRCode(`
-          Player Name: ${checkout.metadata?.presentationTicketPlayerName ?? 'Unknown'}
-
-          Age Group: ${checkout.metadata?.presentationTicketAgeGroup.toUpperCase() ?? 'Unknown'}
-
-          Visitor Tickets: ${
-            checkout.line_items?.data.reduce((visitorCount, lineItem) => {
-              if (lineItem.description === 'Presentation 2022 - Visitor Ticket') {
-                visitorCount += lineItem?.quantity ?? 0
-              }
-
-              return visitorCount
-            }, 0) ?? 0
-          }
-
-          Player Tickets: ${
-            checkout.line_items?.data.reduce((visitorCount, lineItem) => {
-              if (lineItem.description === 'Presentation 2022 - Player Ticket') {
-                visitorCount += lineItem?.quantity ?? 0
-              }
-
-              return visitorCount
-            }, 0) ?? 0
-          }
-
-          Email: ${checkout.customer_details!.email!}
-
-          Validation: https://api.newcastlecityjuniors.co.uk/api/v1/helpers/validate-presentation-ticket?checkoutId=${checkout.id}
-        `)
-
-        Mail.send(message => {
-          message.embedData(Buffer.from(qrcode.split(',')[1], 'base64'), `${checkoutId}-qrcode`, {
-            filename: `${checkoutId}-qrcode.png`,
-            contentType: 'image/png',
-          })
-
-          message
-            .from('info@newcastlecityjuniors.co.uk', 'Newcastle City Juniors')
-            .to(checkout.customer_details!.email!)
-            .subject('Your NCJ Presentation Tickets')
-            .htmlView('emails/presentation-2022', { checkoutId })
-        })
-
-        return response.ok({ status: 'success' })
-      }
-
-      return response.ok({ status: 'success' })
+    switch (event.type) {
+      case 'payment_intent.succeeded':
+        switch (event.data.object?.metadata?.orderType) {
+          case 'summer-camp-2023':
+            await this.handleSummerCamp2023PaymentIntentSucceeded(event.data.object);
+            break;
+          default:
+            console.log(`Unhandled payment intent order type: ${event.data.object.metadata.orderType}`);
+        }
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
     }
 
     return response.ok({
-      status: 'success',
-      message: 'Request was received successfully but not processed',
-    })
+      code: 200,
+      status: 'OK',
+      message: 'Webhook handled successfully',
+    });
+  }
+
+  public async handleSummerCamp2023PaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+    await Database
+      .insertQuery()
+      .table('summer_camp_2023_signups')
+      .insert({
+        email_address: paymentIntent.metadata.emailAddress,
+        club_name: paymentIntent.metadata.clubName,
+        team_name: paymentIntent.metadata.teamName,
+        age_group: paymentIntent.metadata.ageGroup,
+        coach_name: paymentIntent.metadata.coachName,
+        contact_number: paymentIntent.metadata.contactNumber,
+        accepted_coach_qualification_agreement: paymentIntent.metadata.acceptedCoachQualificationAgreement,
+        accepted_organiser_decision_agreement: paymentIntent.metadata.acceptedOrganiserDecisionAgreement,
+        amount_paid: paymentIntent.amount_received,
+      });
+
+    await Mail.send(message => {
+      message
+        .from('info@newcastlecityjuniors.co.uk')
+        .to('info@newcastlecityjuniors.co.uk', 'Newcastle City Juniors')
+        .subject('New Summer Camp 2023 Signup')
+        .html(`
+          <h1>New Summer Camp 2023 Signup</h1>
+          <p>The following summer camp registration has been received and paid:</p>
+          <ul>
+            <li><strong>Email Address:</strong> ${paymentIntent.metadata.emailAddress}</li>
+            <li><strong>Club Name:</strong> ${paymentIntent.metadata.clubName}</li>
+            <li><strong>Team Name:</strong> ${paymentIntent.metadata.teamName}</li>
+            <li><strong>Age Group:</strong> ${paymentIntent.metadata.ageGroup}</li>
+            <li><strong>Coach Name:</strong> ${paymentIntent.metadata.coachName}</li>
+            <li><strong>Contact Number:</strong> ${paymentIntent.metadata.contactNumber}</li>
+            <li><strong>Accepted Coach Qualification Agreement:</strong> ${paymentIntent.metadata.acceptedCoachQualificationAgreement}</li>
+            <li><strong>Accepted Organiser Decision Agreement:</strong> ${paymentIntent.metadata.acceptedOrganiserDecisionAgreement}</li>
+            <li><strong>Amount Paid:</strong> £${(paymentIntent.amount_received / 100).toFixed(2)}</li>
+          </ul>
+        `);
+    });
   }
 }

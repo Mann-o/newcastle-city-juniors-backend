@@ -250,7 +250,13 @@ export default class StripeController {
     let paymentIntent: Stripe.PaymentIntent
     let isUpdate: boolean = false
 
-    if (request.input('paymentIntentId') != null) {
+    if (request.input('finalise') === true) {
+      paymentIntent = await stripeClient.paymentIntents.update(request.input('paymentIntentId'), {
+        receipt_email: request.input('form.emailAddress'),
+      })
+
+      isUpdate = true
+    } else if (request.input('paymentIntentId') != null) {
       paymentIntent = await stripeClient.paymentIntents.update(request.input('paymentIntentId'), {
         amount: request.input('amount'),
       })
@@ -260,7 +266,6 @@ export default class StripeController {
       paymentIntent = await stripeClient.paymentIntents.create({
         amount: request.input('amount'),
         currency: 'gbp',
-        receipt_email: request.input('form.emailAddress'),
         metadata: {
           emailAddress: request.input('form.emailAddress'),
           clubName: request.input('form.clubName'),

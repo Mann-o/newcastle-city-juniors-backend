@@ -343,8 +343,4 @@ export default class StripeController {
       isUpdate,
     })
   }
-
-  public async updateDefaultPaymentMethods({ request, response }: HttpContextContract) {
-    const users = await User.all();
-  }
 }

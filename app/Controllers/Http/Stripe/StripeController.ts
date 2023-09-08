@@ -2,9 +2,9 @@ import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Env from '@ioc:Adonis/Core/Env'
 import Stripe from 'stripe'
 import Player from 'App/Models/Player'
+import User from 'App/Models/User'
 
 import { parseISO, getUnixTime, getYear, getMonth, addMonths } from 'date-fns'
-import User from 'App/Models/User'
 
 export default class StripeController {
   public async getPresentation2021EventPaymentIntent({ response }: HttpContextContract) {
@@ -292,5 +292,59 @@ export default class StripeController {
       paymentIntent,
       isUpdate,
     })
+  }
+
+  public async createFootyTalkIn2023PaymentIntent({ request, response }: HttpContextContract) {
+    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+      apiVersion: Env.get('STRIPE_API_VERSION'),
+    })
+
+    let paymentIntent: Stripe.PaymentIntent
+    let isUpdate: boolean = false
+
+    if (request.input('paymentIntentId') != null) {
+      paymentIntent = await stripeClient.paymentIntents.update(request.input('paymentIntentId'), {
+        amount: request.input('amount'),
+        currency: 'gbp',
+        metadata: {
+          fullName: request.input('form.fullName'),
+          houseNameAndNumber: request.input('form.houseNameAndNumber'),
+          city: request.input('form.city'),
+          postcode: request.input('form.postcode'),
+          emailAddress: request.input('form.emailAddress'),
+          contactNumber: request.input('form.contactNumber'),
+          bookingName: request.input('form.bookingName'),
+          orderType: 'footy-talk-in-2023',
+        },
+      })
+
+      isUpdate = true
+    } else {
+      paymentIntent = await stripeClient.paymentIntents.create({
+        amount: request.input('amount'),
+        currency: 'gbp',
+        metadata: {
+          fullName: request.input('form.fullName'),
+          houseNameAndNumber: request.input('form.houseNameAndNumber'),
+          city: request.input('form.city'),
+          postcode: request.input('form.postcode'),
+          emailAddress: request.input('form.emailAddress'),
+          contactNumber: request.input('form.contactNumber'),
+          bookingName: request.input('form.bookingName'),
+          orderType: 'footy-talk-in-2023',
+        },
+      })
+    }
+
+    return response.ok({
+      status: 'OK',
+      code: 200,
+      paymentIntent,
+      isUpdate,
+    })
+  }
+
+  public async updateDefaultPaymentMethods({ request, response }: HttpContextContract) {
+    const users = await User.all();
   }
 }

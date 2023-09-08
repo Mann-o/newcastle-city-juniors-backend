@@ -1,5 +1,6 @@
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Env from '@ioc:Adonis/Core/Env'
+import Database from '@ioc:Adonis/Lucid/Database'
 
 import Stripe from 'stripe'
 import { format, fromUnixTime } from 'date-fns';
@@ -86,6 +87,47 @@ export default class PlayerController {
         message: 'success',
       },
     })
+  }
+
+  public async getTeamsForPaymentStatusPage({ response }: HttpContextContract) {
+    const firstTeams = await Database.from('players').distinct('team').orderBy('team');
+    const secondTeams = await Database.from('players').distinct('second_team').orderBy('second_team', 'asc');
+
+    const teams: string[] = [...firstTeams, ...secondTeams].reduce((acc, player) => {
+      if (!acc.includes(player.team)) acc.push(player.team);
+      if (!acc.includes(player.secondTeam)) acc.push(player.secondTeam);
+      return acc;
+    }, [] as string[]);
+
+    return response.ok({
+      status: 'OK',
+      code: 200,
+      data: teams,
+    });
+  }
+
+  public async getPaymentStatusForAgeGroup({ auth, request, response }: HttpContextContract) {
+    const user = auth.use('api').user!;
+
+    const requiredPermissions = ['staff', 'view-players'];
+    const userPermissions = (await user!.related('permissions').query()).map(({ name }) => name)
+    const hasRequiredPermissions = requiredPermissions.every(requiredPermission => userPermissions.includes(requiredPermission));
+
+    if (!hasRequiredPermissions) {
+      return response.unauthorized();
+    }
+
+    const players = await Player.query()
+      .where('team', request.input('team'))
+      .orWhere('second_team', request.input('team'))
+      .preload('user')
+      .orderBy('first_name', 'asc');
+
+    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+      apiVersion: Env.get('STRIPE_API_VERSION'),
+    });
+
+
   }
 
   public async getSubscriptionsPaymentSchedule({ auth, response }: HttpContextContract) {

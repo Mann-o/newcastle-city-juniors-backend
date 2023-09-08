@@ -106,30 +106,6 @@ export default class PlayerController {
     });
   }
 
-  public async getPaymentStatusForAgeGroup({ auth, request, response }: HttpContextContract) {
-    const user = auth.use('api').user!;
-
-    const requiredPermissions = ['staff', 'view-players'];
-    const userPermissions = (await user!.related('permissions').query()).map(({ name }) => name)
-    const hasRequiredPermissions = requiredPermissions.every(requiredPermission => userPermissions.includes(requiredPermission));
-
-    if (!hasRequiredPermissions) {
-      return response.unauthorized();
-    }
-
-    const players = await Player.query()
-      .where('team', request.input('team'))
-      .orWhere('second_team', request.input('team'))
-      .preload('user')
-      .orderBy('first_name', 'asc');
-
-    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
-      apiVersion: Env.get('STRIPE_API_VERSION'),
-    });
-
-
-  }
-
   public async getSubscriptionsPaymentSchedule({ auth, response }: HttpContextContract) {
     const user = auth.use('api').user!
 

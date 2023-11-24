@@ -21,7 +21,7 @@ export default class PlayerController {
       return response.unauthorized()
     }
 
-    const players = await Player.all()
+    const players = (await Player.all()).sort((a, b) => (a.ageGroup as any) - (b.ageGroup as any))
 
     return response.ok({
       status: 'OK',

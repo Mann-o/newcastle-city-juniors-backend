@@ -98,7 +98,7 @@ export default class StripeCheckoutCompleteController {
   public async handleSummerCup2024PaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     await Database
       .insertQuery()
-      .table('summer_camp_2023_signups')
+      .table('summer_cup_2024_signups')
       .insert({
         club_name: paymentIntent.metadata.clubName,
         team_name: paymentIntent.metadata.teamName,

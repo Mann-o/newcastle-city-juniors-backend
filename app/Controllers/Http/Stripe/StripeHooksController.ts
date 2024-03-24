@@ -103,7 +103,7 @@ export default class StripeCheckoutCompleteController {
         club_name: paymentIntent.metadata.clubName,
         team_name: paymentIntent.metadata.teamName,
         ability_level: paymentIntent.metadata.abilityLevel,
-        tournament_entry: paymentIntent.metadata.ageGroup,
+        tournament_entry: paymentIntent.metadata.tournamentEntry,
         coach_name: paymentIntent.metadata.coachName,
         contact_number: paymentIntent.metadata.contactNumber,
         email_address: paymentIntent.metadata.emailAddress,
@@ -125,7 +125,7 @@ export default class StripeCheckoutCompleteController {
             <li><strong>Club Name:</strong> ${paymentIntent.metadata.clubName}</li>
             <li><strong>Team Name:</strong> ${paymentIntent.metadata.teamName}</li>
             <li><strong>Ability Level:</strong> ${paymentIntent.metadata.abilityLevel}</li>
-            <li><strong>Tournament Entry:</strong> ${paymentIntent.metadata.ageGroup}</li>
+            <li><strong>Tournament Entry:</strong> ${paymentIntent.metadata.tournamentEntry}</li>
             <li><strong>Coach Name:</strong> ${paymentIntent.metadata.coachName}</li>
             <li><strong>Contact Number:</strong> ${paymentIntent.metadata.contactNumber}</li>
             <li><strong>Email Address:</strong> ${paymentIntent.metadata.emailAddress}</li>

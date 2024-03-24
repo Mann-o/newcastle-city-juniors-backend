@@ -37,6 +37,65 @@ export default class ParentController {
     }
   }
 
+  public async getParent({ auth, params, response }: HttpContextContract) {
+    const user = auth.use('api').user!
+
+    try {
+      const parent = await Parent.query().where('userId', user.id).andWhere('id', params.parentId).first()
+
+      if (!parent) {
+        return response.notFound({
+          status: 'Not Found',
+          code: 404,
+          message: 'Parent not found',
+        })
+      }
+
+      return response.ok({
+        status: 'OK',
+        code: 200,
+        data: {
+          ...parent.serialize(),
+        },
+      })
+    } catch (error) {
+      console.log(error)
+      response.internalServerError();
+    }
+  }
+
+  public async updateParent({ auth, request, response, params }: HttpContextContract) {
+    const user = auth.use('api').user!
+
+    const parent = await Parent.query().where({
+      id: params.parentId,
+      userId: user.id,
+    }).firstOrFail()
+
+    parent.title = request.input('title')
+    parent.otherTitle = request.input('otherTitle')
+    parent.firstName = request.input('firstName')
+    parent.middleNames = request.input('middleNames') || null
+    parent.lastName = request.input('lastName')
+    parent.dateOfBirth = request.input('dateOfBirth')
+    parent.email = request.input('email')
+    parent.addressLineOne = request.input('addressLineOne')
+    parent.addressLineTwo = request.input('addressLineTwo') || null
+    parent.addressLineThree = request.input('addressLineThree') || null
+    parent.addressLineFour = request.input('addressLineFour') || null
+    parent.addressLineFive = request.input('addressLineFive') || null
+    parent.postalCode = request.input('postalCode')
+    parent.mobileNumber = request.input('mobileNumber')
+
+    await parent.save()
+
+    return response.ok({
+      status: 'OK',
+      code: 200,
+      data: parent.serialize(),
+    })
+  }
+
   public async getAllParents({ auth, response }: HttpContextContract) {
     const user = auth.use('api').user!
 

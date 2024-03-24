@@ -15,7 +15,7 @@ export default class ParentSeeder extends BaseSeeder {
 
     await user1.related('parents').createMany([
       {
-        title: faker.name.prefix(),
+        title: faker.helpers.arrayElement(['mr', 'mrs', 'miss', 'ms']),
         firstName: faker.name.firstName(),
         lastName: faker.name.lastName(),
         dateOfBirth: DateTime.fromISO('1988-07-02'),

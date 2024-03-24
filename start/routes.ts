@@ -24,6 +24,7 @@ Route.group(() => {
       Route.get('/', 'Club/ParentController.getAllParents')
       Route.post('/', 'Club/ParentController.createParent')
       Route.get('/:parentId', 'Club/ParentController.getParent')
+      Route.patch('/:parentId', 'Club/ParentController.updateParent')
     }).prefix('/parents')
 
     // Players
@@ -54,6 +55,7 @@ Route.group(() => {
     Route.group(() => {
       Route.post('/presentation-2021-event', 'Stripe/StripeController.getPresentation2021EventPaymentIntent')
       Route.post('/summer-camp-2023', 'Stripe/StripeController.createSummerCamp2023PaymentIntent')
+      Route.post('/summer-cup-2024', 'Stripe/StripeController.createSummerCup2024PaymentIntent')
       Route.post('/footy-talk-in-2023', 'Stripe/StripeController.createFootyTalkIn2023PaymentIntent')
     }).prefix('/payment-intents')
 

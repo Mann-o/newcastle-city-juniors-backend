@@ -42,6 +42,9 @@ export default class StripeCheckoutCompleteController {
           case 'footy-talk-in-2023':
             await this.handleFootyTalkIn2023PaymentIntentSucceeded(event.data.object);
             break;
+          case 'presentation-2023':
+            await this.handlePresentation2023PaymentIntentSucceeded(event.data.object);
+            break;
           default:
             console.log(`Unhandled payment intent order type: ${event.data.object.metadata.orderType}`);
         }
@@ -173,5 +176,38 @@ export default class StripeCheckoutCompleteController {
             </ul>
           `);
       });
+  }
+
+  public async handlePresentation2023PaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+    await Database
+      .insertQuery()
+      .table('presentation_2023_2024')
+      .insert({
+        child_name: paymentIntent.metadata.childName,
+        age_group: paymentIntent.metadata.ageGroup,
+        team_name: paymentIntent.metadata.teamName,
+        coach_name: paymentIntent.metadata.coachName,
+        tickets_ordered: parseInt(paymentIntent.metadata.ticketsRequired, 10),
+        guest_names: paymentIntent.metadata.guestNames,
+        email_address: paymentIntent.metadata.emailAddress,
+        amount_paid: (paymentIntent.amount_received / 100),
+      });
+
+    const normalisedTeamName = (paymentIntent.metadata.teamName.charAt(0).toUpperCase() + paymentIntent.metadata.teamName.slice(1)).replace('-', ' ');
+
+    await Mail.send(message => {
+      message
+        .from('info@newcastlecityjuniors.co.uk')
+        .to(paymentIntent.metadata.emailAddress)
+        .subject('Your tickets to the NCJ Presentation (2023-2024 Season)')
+        .htmlView('emails/presentation-2023', {
+          playerName: paymentIntent.metadata.childName,
+          teamName: normalisedTeamName,
+          coachName: paymentIntent.metadata.coachName,
+          guestNames: paymentIntent.metadata.guestNames,
+          guestQuantity: paymentIntent.metadata.ticketsRequired,
+          guestCost: (paymentIntent.amount_received / 100).toFixed(2),
+        })
+    });
   }
 }

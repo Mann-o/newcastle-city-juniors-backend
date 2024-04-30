@@ -57,6 +57,7 @@ Route.group(() => {
       Route.post('/summer-camp-2023', 'Stripe/StripeController.createSummerCamp2023PaymentIntent')
       Route.post('/summer-cup-2024', 'Stripe/StripeController.createSummerCup2024PaymentIntent')
       Route.post('/footy-talk-in-2023', 'Stripe/StripeController.createFootyTalkIn2023PaymentIntent')
+      Route.post('/presentation-2023', 'Stripe/StripeController.createPresentation2023PaymentIntent')
     }).prefix('/payment-intents')
 
     Route.post('/handle-webhook', 'Stripe/StripeHooksController.handleStripeWebhook')

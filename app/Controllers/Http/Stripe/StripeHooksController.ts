@@ -193,7 +193,7 @@ export default class StripeCheckoutCompleteController {
         amount_paid: (paymentIntent.amount_received / 100),
       });
 
-    const normalisedTeamName = (paymentIntent.metadata.teamName.charAt(0).toUpperCase() + paymentIntent.metadata.teamName.slice(1)).replace('-', ' ');
+    const normalisedTeamName = (paymentIntent.metadata.teamName.charAt(0).toUpperCase() + paymentIntent.metadata.teamName.slice(1)).replace(/-/g, ' ');
 
     await Mail.send(message => {
       message

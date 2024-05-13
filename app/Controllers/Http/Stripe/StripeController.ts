@@ -420,6 +420,7 @@ export default class StripeController {
           ticketsRequired: request.input('form.ticketsRequired'),
           guestNames: request.input('form.guestNames'),
           emailAddress: request.input('form.emailAddress'),
+          hasPlayerTicket: request.input('form.hasPlayerTicket'),
           orderType: 'presentation-2023',
         },
       })
@@ -437,6 +438,7 @@ export default class StripeController {
           ticketsRequired: request.input('form.ticketsRequired'),
           guestNames: request.input('form.guestNames'),
           emailAddress: request.input('form.emailAddress'),
+          hasPlayerTicket: request.input('form.hasPlayerTicket'),
           orderType: 'presentation-2023',
         },
       })

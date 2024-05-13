@@ -70,4 +70,6 @@ Route.group(() => {
     Route.post('/create-customer-portal-session', 'Stripe/StripeController.createCustomerPortalSession').middleware('auth:api')
     Route.post('/get-order', 'Stripe/StripeController.getOrder')
   }).prefix('/stripe')
+
+  Route.get('/presentation-2023/tickets-remaining', 'Club/PlayerController.getRemainingTicketsCount')
 }).prefix('/api/v1')

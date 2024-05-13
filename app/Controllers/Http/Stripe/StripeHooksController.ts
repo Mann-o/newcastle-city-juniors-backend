@@ -193,6 +193,26 @@ export default class StripeCheckoutCompleteController {
         amount_paid: (paymentIntent.amount_received / 100),
       });
 
+      // Get the number of tickets ordered
+      const ticketsOrdered = (paymentIntent.metadata.hasPlayerTicket === 'true')
+        ? parseInt(paymentIntent.metadata.ticketsRequired, 10)
+        : parseInt(paymentIntent.metadata.ticketsRequired, 10) + 1;
+
+      // Get current tickets_remaining count from the 'config' table
+      const ticketsRemainingJson = await Database
+        .from('config')
+        .where('key', 'tickets_remaining')
+        .select('value')
+        .first();
+
+      const ticketsRemaining = ticketsRemainingJson.value.count;
+
+      // Update tickets_remaining in the 'config' table to be X less than the current value
+      await Database
+        .from('config')
+        .where('key', 'tickets_remaining')
+        .update('value', JSON.stringify({ count: ticketsRemaining - ticketsOrdered }));
+
     const normalisedTeamName = (paymentIntent.metadata.teamName.charAt(0).toUpperCase() + paymentIntent.metadata.teamName.slice(1)).replace(/-/g, ' ');
 
     await Mail.send(message => {

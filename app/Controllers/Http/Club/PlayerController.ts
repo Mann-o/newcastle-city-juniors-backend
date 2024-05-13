@@ -1,4 +1,5 @@
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
+import Database from '@ioc:Adonis/Lucid/Database'
 import Env from '@ioc:Adonis/Core/Env'
 
 import Stripe from 'stripe'
@@ -259,6 +260,20 @@ export default class PlayerController {
       status: 'OK',
       code: 200,
       data: playerCount,
+    })
+  }
+
+  public async getRemainingTicketsCount({ response }: HttpContextContract) {
+    const ticketsRemainingJson = await Database.from('config').where('key', 'tickets_remaining').select('value').first()
+
+    const ticketsRemaining = ticketsRemainingJson.value.count
+
+    return response.ok({
+      status: 'OK',
+      code: 200,
+      data: {
+        ticketsRemaining,
+      },
     })
   }
 }

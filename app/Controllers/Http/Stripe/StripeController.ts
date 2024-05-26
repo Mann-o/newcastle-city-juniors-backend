@@ -1,4 +1,5 @@
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
+import Database from '@ioc:Adonis/Lucid/Database'
 import Env from '@ioc:Adonis/Core/Env'
 import Stripe from 'stripe'
 import Player from 'App/Models/Player'
@@ -397,6 +398,20 @@ export default class StripeController {
       code: 200,
       paymentIntent,
       isUpdate,
+    })
+  }
+
+  public async getPresentation2023AvailablePlaces({ response }: HttpContextContract) {
+    const placesRemainingJson = await Database.from('config').where('key', 'summer_cup_2024_places_remaining').select('value').first()
+
+    const placesRemaining = placesRemainingJson.value
+
+    return response.ok({
+      status: 'OK',
+      code: 200,
+      data: {
+        placesRemaining,
+      },
     })
   }
 

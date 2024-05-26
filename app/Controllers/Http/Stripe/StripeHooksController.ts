@@ -116,6 +116,13 @@ export default class StripeCheckoutCompleteController {
         amount_paid: paymentIntent.amount_received,
       });
 
+    const currentPlacesRemainingJson = await Database.from('config').where('key', 'summer_cup_2024_places_remaining').select('value').first()
+    const currentPlacesRemaining = currentPlacesRemainingJson.value
+
+    currentPlacesRemaining[paymentIntent.metadata.tournamentEntry] -= 1
+
+    await Database.from('config').where('key', 'summer_cup_2024_places_remaining').update('value', JSON.stringify(currentPlacesRemaining))
+
     await Mail.send(message => {
       message
         .from('info@newcastlecityjuniors.co.uk')

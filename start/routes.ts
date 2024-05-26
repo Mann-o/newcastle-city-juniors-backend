@@ -69,7 +69,7 @@ Route.group(() => {
     Route.post('/create-subscription', 'Stripe/StripeController.createSubscriptionForUser').middleware('auth:api')
     Route.post('/create-customer-portal-session', 'Stripe/StripeController.createCustomerPortalSession').middleware('auth:api')
     Route.post('/get-order', 'Stripe/StripeController.getOrder')
-    Route.get('/presentation-2023-places', 'Stripe/StripeController.getPresentation2023AvailablePlaces')
+    Route.get('/summer-cup-2024-places', 'Stripe/StripeController.getSummerCup2024Places')
   }).prefix('/stripe')
 
   Route.get('/presentation-2023/tickets-remaining', 'Club/PlayerController.getRemainingTicketsCount')

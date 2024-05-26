@@ -401,7 +401,7 @@ export default class StripeController {
     })
   }
 
-  public async getPresentation2023AvailablePlaces({ response }: HttpContextContract) {
+  public async getSummerCup2024Places({ response }: HttpContextContract) {
     const placesRemainingJson = await Database.from('config').where('key', 'summer_cup_2024_places_remaining').select('value').first()
 
     const placesRemaining = placesRemainingJson.value

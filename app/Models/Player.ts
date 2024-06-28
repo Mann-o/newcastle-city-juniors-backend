@@ -61,6 +61,12 @@ export default class Player extends BaseModel {
   public stripeSubscriptionId: string
 
   @column()
+  public stripeRegistrationFeeId: string
+
+  @column()
+  public stripeUpfrontPaymentId: string
+
+  @column()
   public wgsRegistered: boolean
 
   @column()
@@ -94,6 +100,9 @@ export default class Player extends BaseModel {
 
   @column()
   public parentId: number
+
+  @column()
+  public active: boolean
 
   @belongsTo(() => Parent)
   public parent: BelongsTo<typeof Parent>

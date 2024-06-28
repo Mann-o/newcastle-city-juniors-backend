@@ -110,7 +110,7 @@ export default class PlayerController {
         line_items: [
           {
             ...(player.membershipFeeOption === 'upfront' && {
-            price: Env.get(`STRIPE_UPRONT_${dualTeam ? 'DUAL' : 'SINGLE'}_TEAM_${player.sex.toUpperCase()}`),
+            price: Env.get(`STRIPE_UPFRONT_${dualTeam ? 'DUAL' : 'SINGLE'}_TEAM_${player.sex.toUpperCase()}`),
             }),
             ...(player.membershipFeeOption === 'subscription' && {
               price: Env.get(`STRIPE_REG_FEE_${dualTeam ? 'DUAL' : 'SINGLE'}_TEAM_${player.sex.toUpperCase()}`),

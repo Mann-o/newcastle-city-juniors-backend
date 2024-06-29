@@ -77,11 +77,60 @@ export default class PlayerController {
         })
       }
 
+      const requiredPermissionsForFreeRegistration: string[] = ['coach'];
+      const userPermissions = (await user!.related('permissions').query()).map(({ name }) => name)
+      const hasRequiredPermissionsForFreeRegistration = requiredPermissionsForFreeRegistration.every(requiredPermission => userPermissions.includes(requiredPermission)) || userPermissions.includes('sudo');
+
       const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
         apiVersion: Env.get('STRIPE_API_VERSION'),
       })
 
-      if (request.input('membershipFeeOption') === 'subscription') {
+      if (hasRequiredPermissionsForFreeRegistration) {
+        const session = await stripeClient.checkout.sessions.create({
+          mode: 'payment',
+          payment_method_options: {
+            card: {
+              setup_future_usage: 'off_session',
+            },
+          },
+          payment_method_types: ['card'],
+          customer: user.stripeCustomerId,
+          line_items: [
+            {
+              price: Env.get('STRIPE_SUBS_COACH'),
+              quantity: 1,
+              adjustable_quantity: {
+                enabled: false,
+              },
+            },
+          ],
+          payment_intent_data: {
+            setup_future_usage: 'off_session',
+          },
+          allow_promotion_codes: true,
+          metadata: {
+            playerId: player.id,
+          },
+          cancel_url: `${
+            Env.get('NODE_ENV') === 'production'
+              ? 'https://newcastlecityjuniors.co.uk'
+              : 'http://localhost:3000'
+          }/portal/players/register?player=${player.id}`,
+          success_url: `${
+            Env.get('NODE_ENV') === 'production'
+              ? 'https://newcastlecityjuniors.co.uk'
+              : 'http://localhost:3000'
+          }/portal/players?status=success&id={CHECKOUT_SESSION_ID}`,
+        })
+
+        if (session.url) {
+          return response.send({
+            checkoutUrl: session.url,
+          })
+        } else {
+          return response.abort('Unable to create a Stripe checkout session', 502)
+        }
+      } else if (request.input('membershipFeeOption') === 'subscription') {
         const trialEndDate = addMonths(new Date(), 1)
         const subscription = await stripeClient.subscriptions.create({
           customer: user.stripeCustomerId,

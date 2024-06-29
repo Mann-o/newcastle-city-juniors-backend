@@ -43,6 +43,7 @@ export default Env.rules({
   STRIPE_SUBS_SINGLE_TEAM_FEMALE: Env.schema.string(),
   STRIPE_SUBS_DUAL_TEAM_MALE: Env.schema.string(),
   STRIPE_SUBS_DUAL_TEAM_FEMALE: Env.schema.string(),
+  STRIPE_SUBS_COACH: Env.schema.string(),
 
   SENTRY_DSN: Env.schema.string(),
   SENTRY_TRACES_SAMPLE_RATE: Env.schema.number(),

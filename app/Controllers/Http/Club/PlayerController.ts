@@ -22,6 +22,10 @@ export default class PlayerController {
         throw new Error()
       }
 
+      const requiredPermissionsForFreeRegistration: string[] = ['coach'];
+      const userPermissions = (await user!.related('permissions').query()).map(({ name }) => name)
+      const hasRequiredPermissionsForFreeRegistration = requiredPermissionsForFreeRegistration.every(requiredPermission => userPermissions.includes(requiredPermission)) || userPermissions.includes('sudo');
+
       const dualTeam = (request.input('secondTeam') !== 'none');
 
       const identityVerificationPhoto = request.file('identityVerificationPhoto')!
@@ -46,7 +50,7 @@ export default class PlayerController {
         player.team = request.input('team')
         player.secondTeam = request.input('secondTeam');
         player.paymentDate = request.input('paymentDate')
-        player.membershipFeeOption = request.input('membershipFeeOption')
+        player.membershipFeeOption = hasRequiredPermissionsForFreeRegistration ? 'upfront' : request.input('membershipFeeOption')
         player.acceptedCodeOfConduct = request.input('acceptedCodeOfConduct')
         player.acceptedDeclaration = request.input('acceptedDeclaration')
         player.parentId = request.input('parentId')
@@ -76,10 +80,6 @@ export default class PlayerController {
           ageVerificationPhoto: ageVerificationPhoto.fileName,
         })
       }
-
-      const requiredPermissionsForFreeRegistration: string[] = ['coach'];
-      const userPermissions = (await user!.related('permissions').query()).map(({ name }) => name)
-      const hasRequiredPermissionsForFreeRegistration = requiredPermissionsForFreeRegistration.every(requiredPermission => userPermissions.includes(requiredPermission)) || userPermissions.includes('sudo');
 
       const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
         apiVersion: Env.get('STRIPE_API_VERSION'),

@@ -317,7 +317,7 @@ export default class PlayerController {
               formattedPlayer.paymentInfo.registrationFeePaid = true
             }
           } else {
-            const expectedCost = expectedCosts[(player.secondTeam !== 'none') ? 'dualTeam' : 'singleTeam'][player.sex].registration
+            const expectedCost = expectedCosts[(player.secondTeam !== 'none') ? 'dualTeam' : 'singleTeam'][player.sex].subscription.registration
 
             const paymentIntents = await stripeClient.paymentIntents.list({
               customer: player.parent.user.stripeCustomerId,

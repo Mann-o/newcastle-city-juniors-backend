@@ -220,7 +220,7 @@ export default class PlayerController {
     }
 
     try {
-      const players = await Player.query()
+      const players: Player[] = await Player.query()
         .where('team', request.input('team'))
         .orWhere('second_team', request.input('team'))
         .preload('parent', pq => pq.preload('user', uq => uq.preload('permissions')))

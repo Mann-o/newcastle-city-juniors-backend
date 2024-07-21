@@ -7,7 +7,7 @@ import { format, fromUnixTime } from 'date-fns';
 
 import Player from 'App/Models/Player'
 import Parent from 'App/Models/Parent'
-// import User from 'App/Models/User'
+import User from 'App/Models/User'
 
 export default class PlayerController {
   public async getAllPlayers({ auth, response }: HttpContextContract) {
@@ -368,5 +368,53 @@ export default class PlayerController {
       console.log(error)
       return response.internalServerError()
     }
+  }
+
+  public async setDefaultPaymentMethod({ auth, response, request }: HttpContextContract) {
+    const user = auth.use('api').user!
+
+    const requiredPermissions = ['staff', 'view-payments'];
+    const userPermissions = (await user!.related('permissions').query()).map(({ name }) => name)
+    const hasRequiredPermissions = requiredPermissions.every(requiredPermission => userPermissions.includes(requiredPermission)) || userPermissions.includes('sudo');
+
+    if (!hasRequiredPermissions) {
+      return response.unauthorized()
+    }
+
+    const users: User[] = await User.all()
+
+    if (users.length > 0) {
+      const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+        apiVersion: Env.get('STRIPE_API_VERSION'),
+      })
+
+      // Check if the user has a default payment method, and if not set it to their last used payment method
+      for (const user of users) {
+        const customer = await stripeClient.customers.retrieve(user.stripeCustomerId) as Stripe.Customer
+
+        if (customer?.default_source == null) {
+          const paymentMethods = await stripeClient.paymentMethods.list({
+            customer: user.stripeCustomerId,
+            type: 'card',
+          })
+
+          if (paymentMethods.data.length > 0) {
+            const defaultPaymentMethod = paymentMethods.data[paymentMethods.data.length - 1]
+
+            await stripeClient.customers.update(user.stripeCustomerId, {
+              default_source: defaultPaymentMethod.id,
+            })
+          }
+        }
+      }
+    }
+
+    return response.ok({
+      status: 'OK',
+      code: 200,
+      data: {
+        message: 'success',
+      },
+    })
   }
 }

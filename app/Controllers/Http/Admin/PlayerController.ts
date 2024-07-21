@@ -288,10 +288,10 @@ export default class PlayerController {
             const payment: Stripe.PaymentIntent = await stripeClient.paymentIntents.retrieve(player.stripeUpfrontPaymentId)
 
             if (payment.status === 'succeeded') {
-              formattedPlayer.paymentInfo.registrationFeePaid = true
+              formattedPlayer.paymentInfo.upfrontFeePaid = true
             }
           } else {
-            const expectedCost = expectedCosts[player.secondTeam ? 'dualTeam' : 'singleTeam'][player.sex].upfront
+            const expectedCost = expectedCosts[(player.secondTeam !== 'none') ? 'dualTeam' : 'singleTeam'][player.sex].upfront
 
             const paymentIntents = await stripeClient.paymentIntents.list({
               customer: player.parent.user.stripeCustomerId,

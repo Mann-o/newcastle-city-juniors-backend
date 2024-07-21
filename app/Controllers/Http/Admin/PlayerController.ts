@@ -289,7 +289,7 @@ export default class PlayerController {
             const expectedCost = expectedCosts[player.secondTeam ? 'dualTeam' : 'singleTeam'][player.sex].upfront
 
             const paymentIntents = await stripeClient.paymentIntents.list({
-              customer: player.user.stripeCustomerId,
+              customer: player.parent.user.stripeCustomerId,
               created: {
                 gt: 1719792000,
               },

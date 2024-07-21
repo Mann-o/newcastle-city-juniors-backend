@@ -46,6 +46,7 @@ Route.group(() => {
     Route.get('/subscriptions-schedule', 'Admin/PlayerController.getSubscriptionsPaymentSchedule')
     Route.get('/verification-photos/:folder/:filename', 'Admin/MediaController.getVerificationPhoto')
     Route.get('/presentation-tickets-schedule', 'Admin/PlayerController.getPresentationTicketsPaymentSchedule')
+    Route.post('/subs-status', 'Admin/PlayerController.getSubsStatusForTeam')
   })
     .prefix('/admin')
     .middleware('auth:api')

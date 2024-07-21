@@ -204,4 +204,114 @@ export default class PlayerController {
       },
     })
   }
+
+  public async getSubsStatusForTeam({ auth, response, request }: HttpContextContract) {
+    const user = auth.use('api').user!
+
+    const requiredPermissions = ['staff', 'view-payments']
+    const userPermissions = (await user!.related('permissions').query()).map(({ name }) => name)
+    const hasRequiredPermissions = requiredPermissions.every(requiredPermission => {
+      return userPermissions.includes(requiredPermission)
+        || userPermissions.includes('sudo')
+    })
+
+    if (!hasRequiredPermissions) {
+      return response.unauthorized()
+    }
+
+    try {
+      const players = await Player.query()
+        .where('team', request.input('team'))
+        .orWhere('second_team', request.input('team'))
+        .preload('parent', pq => pq.preload('user', uq => uq.preload('permissions')))
+        .orderBy('first_name', 'asc')
+
+      let formattedPlayers: any[] = []
+
+      const expectedCosts = {
+        singleTeam: {
+          male: {
+            upfront: 360,
+            subscription: {
+              monthly: 34,
+              registration: 68,
+            },
+          },
+          female: {
+            upfront: 320,
+            subscription: {
+              monthly: 30,
+              registration: 60,
+            },
+          },
+        },
+        dualTeam: {
+          male: {
+            upfront: 550,
+            subscription: {
+              monthly: 51,
+              registration: 85,
+            },
+          },
+          female: {
+            upfront: 475,
+            subscription: {
+              monthly: 45,
+              registration: 75,
+            },
+          },
+        },
+      }
+
+      const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+        apiVersion: Env.get('STRIPE_API_VERSION'),
+      })
+
+      for (const player of players) {
+        const formattedPlayer = {
+          ...player.serialize(),
+          paymentInfo: {
+            isCoach: player.parent.user.permissions.some(({ name }) => name === 'coach'),
+            upfrontFeePaid: false,
+            registrationFeePaid: false,
+            subsciptionUpToDate: false,
+          },
+        }
+
+        if (player.membershipFeeOption === 'upfront') {
+          if (player.stripeRegistrationFeeId != null) {
+            const payment: Stripe.PaymentIntent = await stripeClient.paymentIntents.retrieve(player.stripeRegistrationFeeId)
+
+            if (payment.status === 'succeeded') {
+              formattedPlayer.paymentInfo.registrationFeePaid = true
+            }
+          } else {
+            const expectedCost = expectedCosts[player.secondTeam ? 'dualTeam' : 'singleTeam'][player.sex].upfront
+
+            const paymentIntents = await stripeClient.paymentIntents.list({
+              customer: player.user.stripeCustomerId,
+              created: {
+                gt: 1719792000,
+              },
+            })
+
+            const paymentIntent = paymentIntents.data.find(({ amount }) => amount === expectedCost * 100)
+
+            if (paymentIntent && paymentIntent.status === 'succeeded') {
+              player.stripeRegistrationFeeId = paymentIntent.id
+              await player.save()
+              formattedPlayer.paymentInfo.registrationFeePaid = true
+            }
+          }
+        }
+
+        formattedPlayers.push(formattedPlayer)
+      }
+
+      return formattedPlayers
+    } catch (error) {
+      console.log(error)
+      return response.internalServerError()
+    }
+  }
 }

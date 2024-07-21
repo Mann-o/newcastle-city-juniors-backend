@@ -268,13 +268,14 @@ export default class PlayerController {
       })
 
       for (const player of players) {
-        const formattedPlayer = {
+        const formattedPlayer: any = {
           ...player.serialize(),
           paymentInfo: {
             isCoach: player.parent.user.permissions.some(({ name }) => name === 'coach'),
             upfrontFeePaid: false,
             registrationFeePaid: false,
             subscriptionUpToDate: false,
+            notes: null,
           },
         }
 
@@ -333,6 +334,29 @@ export default class PlayerController {
               await player.save()
               formattedPlayer.paymentInfo.registrationFeePaid = true
             }
+          }
+
+          if (player.stripeSubscriptionId) {
+            const subscription: Stripe.Subscription = await stripeClient.subscriptions.retrieve(player.stripeSubscriptionId, {
+              expand: [
+                'latest_invoice.payment_intent',
+                'schedule',
+              ],
+            })
+
+            if (subscription.status === 'active' || subscription.status === 'trialing') {
+              formattedPlayer.paymentInfo.subscriptionUpToDate = true
+            } else if (
+              subscription.latest_invoice != null
+              && typeof subscription.latest_invoice !== 'string'
+              && typeof subscription.latest_invoice.payment_intent !== 'string'
+            ) {
+              formattedPlayer.paymentInfo.notes = subscription.latest_invoice.payment_intent?.last_payment_error?.message || 'Unknown Error'
+            } else {
+              formattedPlayer.paymentInfo.notes = 'Unknown Error'
+            }
+          } else {
+            formattedPlayer.paymentInfo.notes = 'Subscription not found'
           }
         }
 

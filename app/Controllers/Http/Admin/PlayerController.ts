@@ -308,6 +308,32 @@ export default class PlayerController {
               formattedPlayer.paymentInfo.upfrontFeePaid = true
             }
           }
+
+        } else if (player.membershipFeeOption === 'subscription') {
+          if (player.stripeRegistrationFeeId != null) {
+            const payment: Stripe.PaymentIntent = await stripeClient.paymentIntents.retrieve(player.stripeRegistrationFeeId)
+
+            if (payment.status === 'succeeded') {
+              formattedPlayer.paymentInfo.registrationFeePaid = true
+            }
+          } else {
+            const expectedCost = expectedCosts[(player.secondTeam !== 'none') ? 'dualTeam' : 'singleTeam'][player.sex].registration
+
+            const paymentIntents = await stripeClient.paymentIntents.list({
+              customer: player.parent.user.stripeCustomerId,
+              created: {
+                gt: 1719792000,
+              },
+            })
+
+            const paymentIntent = paymentIntents.data.find(({ amount }) => amount === expectedCost * 100)
+
+            if (paymentIntent && paymentIntent.status === 'succeeded') {
+              player.stripeRegistrationFeeId = paymentIntent.id
+              await player.save()
+              formattedPlayer.paymentInfo.registrationFeePaid = true
+            }
+          }
         }
 
         formattedPlayers.push(formattedPlayer)

@@ -274,11 +274,16 @@ export default class PlayerController {
             isCoach: player.parent.user.permissions.some(({ name }) => name === 'coach'),
             upfrontFeePaid: false,
             registrationFeePaid: false,
-            subsciptionUpToDate: false,
+            subscriptionUpToDate: false,
           },
         }
 
-        if (player.membershipFeeOption === 'upfront') {
+        if (formattedPlayer.paymentInfo.isCoach) {
+          formattedPlayer.paymentInfo.upfrontFeePaid = true
+          formattedPlayer.paymentInfo.registrationFeePaid = true
+          formattedPlayer.paymentInfo.subscriptionUpToDate = true
+
+        } else if (player.membershipFeeOption === 'upfront') {
           if (player.stripeRegistrationFeeId != null) {
             const payment: Stripe.PaymentIntent = await stripeClient.paymentIntents.retrieve(player.stripeRegistrationFeeId)
 
@@ -298,7 +303,7 @@ export default class PlayerController {
             const paymentIntent = paymentIntents.data.find(({ amount }) => amount === expectedCost * 100)
 
             if (paymentIntent && paymentIntent.status === 'succeeded') {
-              player.stripeRegistrationFeeId = paymentIntent.id
+              player.stripeUpfrontPaymentId = paymentIntent.id
               await player.save()
               formattedPlayer.paymentInfo.registrationFeePaid = true
             }

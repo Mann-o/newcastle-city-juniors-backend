@@ -284,8 +284,8 @@ export default class PlayerController {
           formattedPlayer.paymentInfo.subscriptionUpToDate = true
 
         } else if (player.membershipFeeOption === 'upfront') {
-          if (player.stripeRegistrationFeeId != null) {
-            const payment: Stripe.PaymentIntent = await stripeClient.paymentIntents.retrieve(player.stripeRegistrationFeeId)
+          if (player.stripeUpfrontPaymentId != null) {
+            const payment: Stripe.PaymentIntent = await stripeClient.paymentIntents.retrieve(player.stripeUpfrontPaymentId)
 
             if (payment.status === 'succeeded') {
               formattedPlayer.paymentInfo.registrationFeePaid = true
@@ -305,7 +305,7 @@ export default class PlayerController {
             if (paymentIntent && paymentIntent.status === 'succeeded') {
               player.stripeUpfrontPaymentId = paymentIntent.id
               await player.save()
-              formattedPlayer.paymentInfo.registrationFeePaid = true
+              formattedPlayer.paymentInfo.upfrontFeePaid = true
             }
           }
         }

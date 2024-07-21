@@ -370,7 +370,7 @@ export default class PlayerController {
     }
   }
 
-  public async setDefaultPaymentMethod({ auth, response, request }: HttpContextContract) {
+  public async setDefaultPaymentMethod({ auth, response }: HttpContextContract) {
     const user = auth.use('api').user!
 
     const requiredPermissions = ['staff', 'view-payments'];

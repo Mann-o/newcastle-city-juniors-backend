@@ -402,7 +402,9 @@ export default class PlayerController {
             const defaultPaymentMethod = paymentMethods.data[paymentMethods.data.length - 1]
 
             await stripeClient.customers.update(user.stripeCustomerId, {
-              default_source: defaultPaymentMethod.id,
+              invoice_settings: {
+                default_payment_method: defaultPaymentMethod.id,
+              },
             })
           }
         }

@@ -42,6 +42,9 @@ export default class StripeCheckoutCompleteController {
           case 'footy-talk-in-2023':
             await this.handleFootyTalkIn2023PaymentIntentSucceeded(event.data.object);
             break;
+          case 'footy-talk-in-2024':
+            await this.handleFootyTalkIn2024PaymentIntentSucceeded(event.data.object);
+            break;
           case 'presentation-2023':
             await this.handlePresentation2023PaymentIntentSucceeded(event.data.object);
             break;
@@ -171,6 +174,43 @@ export default class StripeCheckoutCompleteController {
           .html(`
             <h1>New Footy Talk-In 2023 Signup</h1>
             <p>The following summer camp registration has been received and paid:</p>
+            <ul>
+              <li><strong>Email Address:</strong> ${paymentIntent.metadata.emailAddress}</li>
+              <li><strong>House Name/No:</strong> ${paymentIntent.metadata.houseNameAndNumber}</li>
+              <li><strong>City:</strong> ${paymentIntent.metadata.city}</li>
+              <li><strong>Postcode:</strong> ${paymentIntent!.charges!.data[0]!.billing_details!.address!.postal_code}</li>
+              <li><strong>Email Address:</strong> ${paymentIntent.metadata.emailAddress}</li>
+              <li><strong>Contact Number:</strong> ${paymentIntent.metadata.contactNumber}</li>
+              <li><strong>Booking Name:</strong> ${paymentIntent.metadata.bookingName}</li>
+              <li><strong>Amount Paid:</strong> £${(paymentIntent.amount_received / 100).toFixed(2)}</li>
+            </ul>
+          `);
+      });
+  }
+
+  public async handleFootyTalkIn2024PaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+    await Database
+      .insertQuery()
+      .table('footy_talk_in_signups_2024')
+      .insert({
+        full_name: paymentIntent.metadata.fullName,
+        house_name_and_number: paymentIntent.metadata.houseNameAndNumber,
+        city: paymentIntent.metadata.city,
+        postcode: paymentIntent!.charges!.data[0]!.billing_details!.address!.postal_code,
+        email_address: paymentIntent.metadata.emailAddress,
+        contact_number: paymentIntent.metadata.contactNumber,
+        booking_name: paymentIntent.metadata.bookingName,
+        amount_paid: paymentIntent.amount_received,
+      });
+
+      await Mail.send(message => {
+        message
+          .from('info@newcastlecityjuniors.co.uk')
+          .to('info@newcastlecityjuniors.co.uk', 'Newcastle City Juniors')
+          .subject('New Footy Talk-In Signup')
+          .html(`
+            <h1>New Footy Talk-In 2024 Signup</h1>
+            <p>The following footy talk-in registration has been received and paid:</p>
             <ul>
               <li><strong>Email Address:</strong> ${paymentIntent.metadata.emailAddress}</li>
               <li><strong>House Name/No:</strong> ${paymentIntent.metadata.houseNameAndNumber}</li>

@@ -48,6 +48,7 @@ Route.group(() => {
     Route.get('/presentation-tickets-schedule', 'Admin/PlayerController.getPresentationTicketsPaymentSchedule')
     Route.post('/subs-status', 'Admin/PlayerController.getSubsStatusForTeam')
     Route.post('/set-default-payment-method', 'Admin/PlayerController.setDefaultPaymentMethod')
+    Route.get('/parent-emails', 'Admin/PlayerController.getParentEmails')
   })
     .prefix('/admin')
     .middleware('auth:api')

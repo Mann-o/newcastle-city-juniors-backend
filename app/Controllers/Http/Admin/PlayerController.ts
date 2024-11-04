@@ -419,4 +419,35 @@ export default class PlayerController {
       },
     })
   }
+
+  public async getParentEmails({ auth, response }: HttpContextContract) {
+    const user = auth.use('api').user!
+
+    const requiredPermissions = ['staff'];
+    const userPermissions = (await user!.related('permissions').query()).map(({ name }) => name)
+    const hasRequiredPermissions = requiredPermissions.every(requiredPermission => userPermissions.includes(requiredPermission)) || userPermissions.includes('sudo');
+
+    if (!hasRequiredPermissions) {
+      return response.unauthorized()
+    }
+
+    const players: Player[] = await Player.query().preload('parent')
+
+    if (players.length > 0) {
+      const parentEmails = players
+        .filter(player => player?.parent?.email != null)
+        .map(player => player.parent.email)
+        .filter((value: String, index: Number, self: String[]) => {
+          return self.indexOf(value) === index
+        })
+
+      return response.ok({
+        status: 'OK',
+        code: 200,
+        data: {
+          parentEmails,
+        },
+      })
+    }
+  }
 }

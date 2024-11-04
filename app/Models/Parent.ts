@@ -1,7 +1,8 @@
 import { DateTime } from 'luxon'
-import { BaseModel, BelongsTo, belongsTo, column, computed } from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, BelongsTo, HasMany, belongsTo, column, computed, hasMany } from '@ioc:Adonis/Lucid/Orm'
 
 import User from 'App/Models/User'
+import Player from 'App/Models/Player'
 
 export default class Parent extends BaseModel {
   @column({ isPrimary: true })
@@ -68,6 +69,9 @@ export default class Parent extends BaseModel {
 
   @belongsTo(() => User)
   public user: BelongsTo<typeof User>
+
+  @hasMany(() => Player)
+  public players: HasMany<typeof Player>
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime

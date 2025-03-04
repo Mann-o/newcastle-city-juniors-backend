@@ -151,6 +151,71 @@ export default class StripeCheckoutCompleteController {
     });
   }
 
+  public async handleSummerCup2025PaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+    await Database
+      .insertQuery()
+      .table('summer_cup_2025_signups')
+      .insert({
+        club_name: paymentIntent.metadata.clubName,
+        team_name: paymentIntent.metadata.teamName,
+        ability_level: paymentIntent.metadata.abilityLevel,
+        tournament_entry: paymentIntent.metadata.tournamentEntry,
+        coach_name: paymentIntent.metadata.coachName,
+        contact_number: paymentIntent.metadata.contactNumber,
+        email_address: paymentIntent.metadata.emailAddress,
+        accepted_next_years_age_group_agreement: paymentIntent.metadata.acceptedNextYearsAgeGroupAgreement,
+        accepted_coach_qualification_agreement: paymentIntent.metadata.acceptedCoachQualificationAgreement,
+        accepted_organiser_decision_agreement: paymentIntent.metadata.acceptedOrganiserDecisionAgreement,
+        amount_paid: paymentIntent.amount_received,
+      });
+
+    const currentPlacesRemainingJson = await Database.from('config').where('key', 'summer_cup_2025_places_remaining').select('value').first()
+    const currentPlacesRemaining = currentPlacesRemainingJson.value
+
+    currentPlacesRemaining[paymentIntent.metadata.tournamentEntry] -= 1
+
+    await Database.from('config').where('key', 'summer_cup_2025_places_remaining').update('value', JSON.stringify(currentPlacesRemaining))
+
+    await Mail.send(message => {
+      message
+        .from('info@newcastlecityjuniors.co.uk')
+        .to('info@newcastlecityjuniors.co.uk', 'Newcastle City Juniors')
+        .subject('New Summer Cup 2025 Signup')
+        .html(`
+          <h1>New Summer Cup 2025 Signup</h1>
+          <p>The following summer cup registration has been received and paid:</p>
+          <ul>
+            <li><strong>Club Name:</strong> ${paymentIntent.metadata.clubName}</li>
+            <li><strong>Team Name:</strong> ${paymentIntent.metadata.teamName}</li>
+            <li><strong>Ability Level:</strong> ${paymentIntent.metadata.abilityLevel}</li>
+            <li><strong>Tournament Entry:</strong> ${paymentIntent.metadata.tournamentEntry}</li>
+            <li><strong>Coach Name:</strong> ${paymentIntent.metadata.coachName}</li>
+            <li><strong>Contact Number:</strong> ${paymentIntent.metadata.contactNumber}</li>
+            <li><strong>Email Address:</strong> ${paymentIntent.metadata.emailAddress}</li>
+            <li><strong>Accepted Next Year's Age Group Agreement:</strong> ${paymentIntent.metadata.acceptedNextYearsAgeGroupAgreement}</li>
+            <li><strong>Accepted Coach Qualification Agreement:</strong> ${paymentIntent.metadata.acceptedCoachQualificationAgreement}</li>
+            <li><strong>Accepted Organiser Decision Agreement:</strong> ${paymentIntent.metadata.acceptedOrganiserDecisionAgreement}</li>
+            <li><strong>Amount Paid:</strong> £${(paymentIntent.amount_received / 100).toFixed(2)}</li>
+          </ul>
+        `);
+    });
+
+    await Mail.send(message => {
+      message
+        .from('info@newcastlecityjuniors.co.uk')
+        .to(paymentIntent.metadata.emailAddress, paymentIntent.metadata.coachName)
+        .subject('NCJ Summer Cup 2025 - Signup Confirmation')
+        .html(`
+          <h1>Summer Cup 2025</h1>
+          <p>Thank you for registering ${paymentIntent.metadata.teamName} (${paymentIntent.metadata.clubName}) to the Newcastle City Juniors Summer Cup 2025.</p>
+          <p>We can confirm that your payment of £${(paymentIntent.amount_received / 100).toFixed(2)} was successful and your registration has been passed to club. A representative from the club will be in touch in due course.</p>
+          <p>If you have any questions in the meantime, please contact us by email here: <a href="mailto:info@newcastlecityjuniors.co.uk">info@newcastlecityjuniors.co.uk</a></p>
+          <p>Thank you for your support, and we look forward to seeing you at the tournament.</p>
+          <p>Kind regards,<br />Newcastle City Juniors</p>
+        `);
+    });
+  }
+
   public async handleFootyTalkIn2023PaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     await Database
       .insertQuery()
@@ -223,6 +288,42 @@ export default class StripeCheckoutCompleteController {
             </ul>
           `);
       });
+  }
+
+  public async handleFootyTalkIn2025PaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+    await Database
+      .insertQuery()
+      .table('footy_talk_in_signups_2025')
+      .insert({
+        full_name: paymentIntent.metadata.fullName,
+        house_name_and_number: paymentIntent.metadata.houseNameAndNumber,
+        city: paymentIntent.metadata.city,
+        postcode: paymentIntent!.charges!.data[0]!.billing_details!.address!.postal_code,
+        email_address: paymentIntent.metadata.emailAddress,
+        contact_number: paymentIntent.metadata.contactNumber,
+        ticket_option: paymentIntent.metadata.ticketOption,
+        amount_paid: paymentIntent.amount_received,
+      });
+
+    await Mail.send(message => {
+      message
+        .from('info@newcastlecityjuniors.co.uk')
+        .to('info@newcastlecityjuniors.co.uk', 'Newcastle City Juniors')
+        .subject('New Footy Talk-In Signup')
+        .html(`
+          <h1>New Footy Talk-In 2025 Signup</h1>
+          <p>The following footy talk-in registration has been received and paid:</p>
+          <ul>
+            <li><strong>Email Address:</strong> ${paymentIntent.metadata.emailAddress}</li>
+            <li><strong>House Name/No:</strong> ${paymentIntent.metadata.houseNameAndNumber}</li>
+            <li><strong>City:</strong> ${paymentIntent.metadata.city}</li>
+            <li><strong>Postcode:</strong> ${paymentIntent!.charges!.data[0]!.billing_details!.address!.postal_code}</li>
+            <li><strong>Contact Number:</strong> ${paymentIntent.metadata.contactNumber}</li>
+            <li><strong>Ticket Option:</strong> ${paymentIntent.metadata.ticketOption}</li>
+            <li><strong>Amount Paid:</strong> £${(paymentIntent.amount_received / 100).toFixed(2)}</li>
+          </ul>
+        `);
+    });
   }
 
   public async handlePresentation2023PaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {

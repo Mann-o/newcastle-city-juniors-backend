@@ -59,8 +59,10 @@ Route.group(() => {
       Route.post('/presentation-2021-event', 'Stripe/StripeController.getPresentation2021EventPaymentIntent')
       Route.post('/summer-camp-2023', 'Stripe/StripeController.createSummerCamp2023PaymentIntent')
       Route.post('/summer-cup-2024', 'Stripe/StripeController.createSummerCup2024PaymentIntent')
+      Route.post('/summer-cup-2025', 'Stripe/StripeController.createSummerCup2025PaymentIntent')
       Route.post('/footy-talk-in-2023', 'Stripe/StripeController.createFootyTalkIn2023PaymentIntent')
       Route.post('/footy-talk-in-2024', 'Stripe/StripeController.createFootyTalkIn2024PaymentIntent')
+      Route.post('/footy-talk-in-2025', 'Stripe/StripeController.createFootyTalkIn2025PaymentIntent')
       Route.post('/presentation-2023', 'Stripe/StripeController.createPresentation2023PaymentIntent')
     }).prefix('/payment-intents')
 
@@ -74,6 +76,7 @@ Route.group(() => {
     Route.post('/create-customer-portal-session', 'Stripe/StripeController.createCustomerPortalSession').middleware('auth:api')
     Route.post('/get-order', 'Stripe/StripeController.getOrder')
     Route.get('/summer-cup-2024-places', 'Stripe/StripeController.getSummerCup2024Places')
+    Route.get('/summer-cup-2025-places', 'Stripe/StripeController.getSummerCup2025Places')
   }).prefix('/stripe')
 
   Route.get('/presentation-2023/tickets-remaining', 'Club/PlayerController.getRemainingTicketsCount')

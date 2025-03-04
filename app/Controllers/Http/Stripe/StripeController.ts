@@ -351,6 +351,62 @@ export default class StripeController {
     })
   }
 
+  public async createSummerCup2025PaymentIntent({ request, response }: HttpContextContract) {
+    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+      apiVersion: Env.get('STRIPE_API_VERSION'),
+    })
+
+    let paymentIntent: Stripe.PaymentIntent
+    let isUpdate: boolean = false
+
+    if (request.input('paymentIntentId') != null) {
+      paymentIntent = await stripeClient.paymentIntents.update(request.input('paymentIntentId'), {
+        amount: request.input('amount'),
+        currency: 'gbp',
+        metadata: {
+          clubName: request.input('form.clubName'),
+          teamName: request.input('form.teamName'),
+          abilityLevel: request.input('form.abilityLevel'),
+          tournamentEntry: request.input('form.tournamentEntry'),
+          coachName: request.input('form.coachName'),
+          contactNumber: request.input('form.contactNumber'),
+          emailAddress: request.input('form.emailAddress'),
+          acceptedNextYearsAgeGroupAgreement: request.input('form.acceptedNextYearsAgeGroupAgreement'),
+          acceptedCoachQualificationAgreement: request.input('form.acceptedCoachQualificationAgreement'),
+          acceptedOrganiserDecisionAgreement: request.input('form.acceptedOrganiserDecisionAgreement'),
+          orderType: 'summer-cup-2025',
+        },
+      })
+
+      isUpdate = true
+    } else {
+      paymentIntent = await stripeClient.paymentIntents.create({
+        amount: request.input('amount'),
+        currency: 'gbp',
+        metadata: {
+          clubName: request.input('form.clubName'),
+          teamName: request.input('form.teamName'),
+          abilityLevel: request.input('form.abilityLevel'),
+          tournamentEntry: request.input('form.tournamentEntry'),
+          coachName: request.input('form.coachName'),
+          contactNumber: request.input('form.contactNumber'),
+          emailAddress: request.input('form.emailAddress'),
+          acceptedNextYearsAgeGroupAgreement: request.input('form.acceptedNextYearsAgeGroupAgreement'),
+          acceptedCoachQualificationAgreement: request.input('form.acceptedCoachQualificationAgreement'),
+          acceptedOrganiserDecisionAgreement: request.input('form.acceptedOrganiserDecisionAgreement'),
+          orderType: 'summer-cup-2025',
+        },
+      })
+    }
+
+    return response.ok({
+      status: 'OK',
+      code: 200,
+      paymentIntent,
+      isUpdate,
+    })
+  }
+
   public async createFootyTalkIn2023PaymentIntent({ request, response }: HttpContextContract) {
     const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
       apiVersion: Env.get('STRIPE_API_VERSION'),
@@ -451,8 +507,72 @@ export default class StripeController {
     })
   }
 
+  public async createFootyTalkIn2025PaymentIntent({ request, response }: HttpContextContract) {
+    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+      apiVersion: Env.get('STRIPE_API_VERSION'),
+    })
+
+    let paymentIntent: Stripe.PaymentIntent
+    let isUpdate: boolean = false
+
+    if (request.input('paymentIntentId') != null) {
+      paymentIntent = await stripeClient.paymentIntents.update(request.input('paymentIntentId'), {
+        amount: request.input('amount'),
+        currency: 'gbp',
+        metadata: {
+          fullName: request.input('form.fullName'),
+          houseNameAndNumber: request.input('form.houseNameAndNumber'),
+          city: request.input('form.city'),
+          postcode: request.input('form.postcode'),
+          emailAddress: request.input('form.emailAddress'),
+          contactNumber: request.input('form.contactNumber'),
+          ticketOption: request.input('form.ticketOption'),
+          orderType: 'footy-talk-in-2025',
+        },
+      })
+
+      isUpdate = true
+    } else {
+      paymentIntent = await stripeClient.paymentIntents.create({
+        amount: request.input('amount'),
+        currency: 'gbp',
+        metadata: {
+          fullName: request.input('form.fullName'),
+          houseNameAndNumber: request.input('form.houseNameAndNumber'),
+          city: request.input('form.city'),
+          postcode: request.input('form.postcode'),
+          emailAddress: request.input('form.emailAddress'),
+          contactNumber: request.input('form.contactNumber'),
+          ticketOption: request.input('form.ticketOption'),
+          orderType: 'footy-talk-in-2025',
+        },
+      })
+    }
+
+    return response.ok({
+      status: 'OK',
+      code: 200,
+      paymentIntent,
+      isUpdate,
+    })
+  }
+
   public async getSummerCup2024Places({ response }: HttpContextContract) {
     const placesRemainingJson = await Database.from('config').where('key', 'summer_cup_2024_places_remaining').select('value').first()
+
+    const placesRemaining = placesRemainingJson.value
+
+    return response.ok({
+      status: 'OK',
+      code: 200,
+      data: {
+        placesRemaining,
+      },
+    })
+  }
+
+  public async getSummerCup2025Places({ response }: HttpContextContract) {
+    const placesRemainingJson = await Database.from('config').where('key', 'summer_cup_2025_places_remaining').select('value').first()
 
     const placesRemaining = placesRemainingJson.value
 

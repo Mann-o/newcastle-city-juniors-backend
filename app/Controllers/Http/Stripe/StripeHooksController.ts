@@ -214,7 +214,7 @@ export default class StripeCheckoutCompleteController {
         .html(`
           <h1>Summer Cup 2025</h1>
           <p>Thank you for registering ${paymentIntent.metadata.teamName} (${paymentIntent.metadata.clubName}) to the Newcastle City Juniors Summer Cup 2025.</p>
-          <p>We can confirm that your payment of £${(paymentIntent.amount_received / 100).toFixed(2)} was successful and your registration has been passed to club. A representative from the club will be in touch in due course.</p>
+          <p>We can confirm that your payment of £${(paymentIntent.amount_received / 100).toFixed(2)} was successful and your registration has been passed to the club. A representative from the club will be in touch in due course.</p>
           <p>If you have any questions in the meantime, please contact us by email here: <a href="mailto:info@newcastlecityjuniors.co.uk">info@newcastlecityjuniors.co.uk</a></p>
           <p>Thank you for your support, and we look forward to seeing you at the tournament.</p>
           <p>Kind regards,<br />Newcastle City Juniors</p>

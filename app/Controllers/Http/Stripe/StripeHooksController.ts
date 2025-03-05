@@ -39,11 +39,17 @@ export default class StripeCheckoutCompleteController {
           case 'summer-cup-2024':
             await this.handleSummerCup2024PaymentIntentSucceeded(event.data.object);
             break;
+          case 'summer-cup-2025':
+            await this.handleSummerCup2025PaymentIntentSucceeded(event.data.object);
+            break;
           case 'footy-talk-in-2023':
             await this.handleFootyTalkIn2023PaymentIntentSucceeded(event.data.object);
             break;
           case 'footy-talk-in-2024':
             await this.handleFootyTalkIn2024PaymentIntentSucceeded(event.data.object);
+            break;
+          case 'footy-talk-in-2025':
+            await this.handleFootyTalkIn2025PaymentIntentSucceeded(event.data.object);
             break;
           case 'presentation-2023':
             await this.handlePresentation2023PaymentIntentSucceeded(event.data.object);

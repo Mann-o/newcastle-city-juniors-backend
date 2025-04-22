@@ -53,6 +53,7 @@ export default class PlayerController {
         player.membershipFeeOption = hasRequiredPermissionsForFreeRegistration ? 'upfront' : request.input('membershipFeeOption')
         player.acceptedCodeOfConduct = request.input('acceptedCodeOfConduct')
         player.acceptedDeclaration = request.input('acceptedDeclaration')
+        player.giftAidDeclarationAccepted = request.input('giftAidDeclarationAccepted')
         player.parentId = request.input('parentId')
 
         await player.save()
@@ -73,6 +74,7 @@ export default class PlayerController {
             'membershipFeeOption',
             'acceptedCodeOfConduct',
             'acceptedDeclaration',
+            'giftAidDeclarationAccepted',
             'parentId',
           ]),
           userId: user.id,
@@ -248,6 +250,7 @@ export default class PlayerController {
     player.dateOfBirth = request.input('dateOfBirth')
     player.sex = request.input('sex')
     player.medicalConditions = request.input('medicalConditions')
+    player.giftAidDeclarationAccepted = request.input('giftAidDeclarationAccepted')
 
     const identityVerificationPhoto = request.file('identityVerificationPhoto')
     const ageVerificationPhoto = request.file('ageVerificationPhoto')

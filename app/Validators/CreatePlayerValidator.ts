@@ -19,6 +19,7 @@ export default class CreatePlayerValidator {
     paymentDate: schema.number.nullableAndOptional([rules.range(1, 15), rules.requiredWhen('membershipFeeOption', '=', 'subscription')]),
     acceptedCodeOfConduct: schema.boolean([rules.isTrue()]),
     acceptedDeclaration: schema.boolean([rules.isTrue()]),
+    giftAidDeclarationAccepted: schema.boolean(),
   })
 
   public messages = {
@@ -55,5 +56,6 @@ export default class CreatePlayerValidator {
     'acceptedCodeOfConduct.isTrue': `Field '{{ field }}' must be true`,
     'acceptedDeclaration.boolean': `Field '{{ field }}' must be a boolean`,
     'acceptedDeclaration.isTrue': `Field '{{ field }}' must be true`,
+    'giftAidDeclarationAccepted.boolean': `Field {{ field }} must be a boolean`,
   }
 }

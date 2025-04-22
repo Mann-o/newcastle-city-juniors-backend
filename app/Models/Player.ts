@@ -34,6 +34,9 @@ export default class Player extends BaseModel {
   public acceptedDeclaration: boolean
 
   @column()
+  public giftAidDeclarationAccepted: boolean
+
+  @column()
   public membershipFeeOption: string
 
   @column()

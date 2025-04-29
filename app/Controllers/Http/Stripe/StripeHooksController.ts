@@ -54,6 +54,9 @@ export default class StripeCheckoutCompleteController {
           case 'presentation-2023':
             await this.handlePresentation2023PaymentIntentSucceeded(event.data.object);
             break;
+          case 'presentation-2024':
+            await this.handlePresentation2024PaymentIntentSucceeded(event.data.object);
+            break;
           default:
             console.log(`Unhandled payment intent order type: ${event.data.object.metadata.orderType}`);
         }
@@ -382,6 +385,68 @@ export default class StripeCheckoutCompleteController {
           guestQuantity: paymentIntent.metadata.ticketsRequired,
           guestCost: (paymentIntent.amount_received / 100).toFixed(2),
         })
+    });
+  }
+
+  public async handlePresentation2024PaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+    await Database
+      .insertQuery()
+      .table('presentation_2024_2025')
+      .insert({
+        child_name: paymentIntent.metadata.childName,
+        age_group: paymentIntent.metadata.ageGroup,
+        team_name: paymentIntent.metadata.teamName,
+        coach_name: paymentIntent.metadata.coachName,
+        tickets_ordered: parseInt(paymentIntent.metadata?.earlyTicketsRequired ?? '0', 10) + parseInt(paymentIntent.metadata?.lateTicketsRequired ?? '0', 10),
+        guest_names: paymentIntent.metadata.guestNames,
+        email_address: paymentIntent.metadata.emailAddress,
+        amount_paid: (paymentIntent.amount_received / 100),
+        session: paymentIntent.metadata.session,
+      });
+
+      // Get the number of tickets ordered
+      const earlyTicketsOrdered = (paymentIntent.metadata.hasPlayerTicket === 'true')
+        ? parseInt(paymentIntent.metadata?.earlyTicketsRequired ?? '0', 10)
+        : parseInt(paymentIntent.metadata?.earlyTicketsRequired ?? '0', 10) + 1;
+
+      const lateTicketsOrdered = (paymentIntent.metadata.hasPlayerTicket === 'true')
+        ? parseInt(paymentIntent.metadata?.lateTicketsRequired ?? '0', 10)
+        : parseInt(paymentIntent.metadata?.lateTicketsRequired ?? '0', 10) + 1;
+
+      // Get current tickets_remaining count from the 'config' table
+      const ticketsRemainingJson = await Database
+        .from('config')
+        .where('key', 'tickets_remaining')
+        .select('value')
+        .first();
+
+      const ticketsRemaining = ticketsRemainingJson.value;
+
+      // Update tickets_remaining in the 'config' table to be X less than the current value
+      await Database
+        .from('config')
+        .where('key', 'tickets_remaining')
+        .update('value', JSON.stringify({
+          earlyCount: ticketsRemaining.earlyCount - earlyTicketsOrdered,
+          lateCount: ticketsRemaining.lateCount - lateTicketsOrdered,
+        }));
+
+    const normalisedTeamName = (paymentIntent.metadata.teamName.charAt(0).toUpperCase() + paymentIntent.metadata.teamName.slice(1)).replace(/-/g, ' ');
+
+    await Mail.send(message => {
+      message
+        .from('info@newcastlecityjuniors.co.uk')
+        .to(paymentIntent.metadata.emailAddress)
+        .subject('Your tickets to the NCJ Presentation (2024-2025 Season)')
+        .htmlView('emails/presentation-2024', {
+          playerName: paymentIntent.metadata.childName,
+          teamName: normalisedTeamName,
+          coachName: paymentIntent.metadata.coachName,
+          guestNames: paymentIntent.metadata.guestNames,
+          guestQuantity: paymentIntent.metadata.ticketsRequired,
+          guestCost: (paymentIntent.amount_received / 100).toFixed(2),
+          session: paymentIntent.metadata.session.toUpperCase(),
+        });
     });
   }
 }

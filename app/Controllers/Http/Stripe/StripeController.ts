@@ -636,5 +636,61 @@ export default class StripeController {
       isUpdate,
     })
   }
+
+  public async createPresentation2024PaymentIntent({ request, response }: HttpContextContract) {
+    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+      apiVersion: Env.get('STRIPE_API_VERSION'),
+    })
+
+    let paymentIntent: Stripe.PaymentIntent
+    let isUpdate: boolean = false
+
+    if (request.input('paymentIntentId') != null) {
+      paymentIntent = await stripeClient.paymentIntents.update(request.input('paymentIntentId'), {
+        amount: request.input('amount'),
+        currency: 'gbp',
+        metadata: {
+          session: request.input('form.session'),
+          childName: request.input('form.childName'),
+          ageGroup: request.input('form.ageGroup'),
+          teamName: request.input('form.teamName'),
+          coachName: request.input('form.coachName'),
+          earlyTicketsRequired: request.input('form.earlyTicketsRequired'),
+          lateTicketsRequired: request.input('form.lateTicketsRequired'),
+          guestNames: request.input('form.guestNames'),
+          emailAddress: request.input('form.emailAddress'),
+          hasPlayerTicket: request.input('form.hasPlayerTicket'),
+          orderType: 'presentation-2024',
+        },
+      })
+
+      isUpdate = true
+    } else {
+      paymentIntent = await stripeClient.paymentIntents.create({
+        amount: request.input('amount'),
+        currency: 'gbp',
+        metadata: {
+          session: request.input('form.session'),
+          childName: request.input('form.childName'),
+          ageGroup: request.input('form.ageGroup'),
+          teamName: request.input('form.teamName'),
+          coachName: request.input('form.coachName'),
+          earlyTicketsRequired: request.input('form.earlyTicketsRequired'),
+          lateTicketsRequired: request.input('form.lateTicketsRequired'),
+          guestNames: request.input('form.guestNames'),
+          emailAddress: request.input('form.emailAddress'),
+          hasPlayerTicket: request.input('form.hasPlayerTicket'),
+          orderType: 'presentation-2024',
+        },
+      })
+    }
+
+    return response.ok({
+      status: 'OK',
+      code: 200,
+      paymentIntent,
+      isUpdate,
+    })
+  }
 }
 

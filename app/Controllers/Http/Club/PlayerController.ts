@@ -311,4 +311,21 @@ export default class PlayerController {
       },
     })
   }
+
+  public async getRemainingTicketsCount2024({ response }: HttpContextContract) {
+    const ticketsRemainingJson = await Database.from('config').where('key', 'tickets_remaining_2024').select('value').first()
+
+    const ticketsRemaining = {
+      earlyTicketsRemaining: ticketsRemainingJson.value.earlyCount,
+      lateTicketsRemaining: ticketsRemainingJson.value.lateCount,
+    }
+
+    return response.ok({
+      status: 'OK',
+      code: 200,
+      data: {
+        ticketsRemaining,
+      },
+    })
+  }
 }

@@ -81,4 +81,5 @@ Route.group(() => {
   }).prefix('/stripe')
 
   Route.get('/presentation-2023/tickets-remaining', 'Club/PlayerController.getRemainingTicketsCount')
+  Route.get('/presentation-2024/tickets-remaining', 'Club/PlayerController.getRemainingTicketsCount2024')
 }).prefix('/api/v1')

@@ -397,7 +397,10 @@ export default class StripeCheckoutCompleteController {
         age_group: paymentIntent.metadata.ageGroup,
         team_name: paymentIntent.metadata.teamName,
         coach_name: paymentIntent.metadata.coachName,
-        tickets_ordered: parseInt(paymentIntent.metadata?.earlyTicketsRequired ?? '0', 10) + parseInt(paymentIntent.metadata?.lateTicketsRequired ?? '0', 10),
+        tickets_ordered: (paymentIntent.metadata.needsPlayerTicket === 'true')
+          ? parseInt(paymentIntent.metadata.ticketsRequired ?? '0', 10) + 1
+          : parseInt(paymentIntent.metadata.ticketsRequired ?? '0', 10),
+        includes_player_ticket: paymentIntent.metadata.needsPlayerTicket === 'true',
         guest_names: paymentIntent.metadata.guestNames,
         email_address: paymentIntent.metadata.emailAddress,
         amount_paid: (paymentIntent.amount_received / 100),
@@ -405,18 +408,14 @@ export default class StripeCheckoutCompleteController {
       });
 
       // Get the number of tickets ordered
-      const earlyTicketsOrdered = (paymentIntent.metadata.hasPlayerTicket === 'true')
-        ? parseInt(paymentIntent.metadata?.earlyTicketsRequired ?? '0', 10)
-        : parseInt(paymentIntent.metadata?.earlyTicketsRequired ?? '0', 10) + 1;
-
-      const lateTicketsOrdered = (paymentIntent.metadata.hasPlayerTicket === 'true')
-        ? parseInt(paymentIntent.metadata?.lateTicketsRequired ?? '0', 10)
-        : parseInt(paymentIntent.metadata?.lateTicketsRequired ?? '0', 10) + 1;
+      const ticketsOrdered = (paymentIntent.metadata.needsPlayerTicket === 'true')
+        ? parseInt(paymentIntent.metadata.ticketsRequired ?? '0', 10) + 1
+        : parseInt(paymentIntent.metadata.ticketsRequired ?? '0', 10);
 
       // Get current tickets_remaining count from the 'config' table
       const ticketsRemainingJson = await Database
         .from('config')
-        .where('key', 'tickets_remaining')
+        .where('key', 'tickets_remaining_2024')
         .select('value')
         .first();
 
@@ -425,10 +424,16 @@ export default class StripeCheckoutCompleteController {
       // Update tickets_remaining in the 'config' table to be X less than the current value
       await Database
         .from('config')
-        .where('key', 'tickets_remaining')
+        .where('key', 'tickets_remaining_2024')
         .update('value', JSON.stringify({
-          earlyCount: ticketsRemaining.earlyCount - earlyTicketsOrdered,
-          lateCount: ticketsRemaining.lateCount - lateTicketsOrdered,
+          ...((paymentIntent.metadata.session === 'early') && {
+            earlyCount: ticketsRemaining.earlyCount - ticketsOrdered,
+            lateCount: ticketsRemaining.lateCount,
+          }),
+          ...((paymentIntent.metadata.session === 'late') && {
+            earlyCount: ticketsRemaining.earlyCount,
+            lateCount: ticketsRemaining.lateCount - ticketsOrdered,
+          }),
         }));
 
     const normalisedTeamName = (paymentIntent.metadata.teamName.charAt(0).toUpperCase() + paymentIntent.metadata.teamName.slice(1)).replace(/-/g, ' ');
@@ -443,6 +448,7 @@ export default class StripeCheckoutCompleteController {
           teamName: normalisedTeamName,
           coachName: paymentIntent.metadata.coachName,
           guestNames: paymentIntent.metadata.guestNames,
+          ticketsOrdered,
           guestQuantity: paymentIntent.metadata.ticketsRequired,
           guestCost: (paymentIntent.amount_received / 100).toFixed(2),
           session: paymentIntent.metadata.session.toUpperCase(),

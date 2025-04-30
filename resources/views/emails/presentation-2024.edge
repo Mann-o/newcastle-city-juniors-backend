@@ -102,8 +102,7 @@
                     </tr>
                     <tr>
                       <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                        <div style="font-family:Roboto, Arial, sans-serif;font-size:13px;line-height:1.4;text-align:left;color:#000000;">Thank you for purchasing tickets to the Newcastle City Juniors Presentation (2024-2025 season). Please find your ticket details below.</div>
-                        <div style="font-family:Roboto, Arial, sans-serif;font-size:13px;line-height:1.4;text-align:left;color:#000000;font-weight:600">PLEASE NOTE: The following tickets are for the {{ session }} session only!</div>
+                        <div style="font-family:Roboto, Arial, sans-serif;font-size:13px;line-height:1.4;text-align:left;color:#000000;">Thank you for purchasing tickets to the Newcastle City Juniors Presentation (2024-2025 season) hosted at The Fed on Saturday 7th June 2025. Please find your ticket details below.</div>
                       </td>
                     </tr>
                     <tr>
@@ -114,11 +113,11 @@
                             <th align="right"><span style="white-space: nowrap">Qty</span></th>
                             <th align="right">Cost</th>
                           </tr>
-                          @unless(playerName === '-')
+                          @if(ticketsOrdered > guestQuantity)
                             <tr>
                               <td>Player ({{ playerName }})<br /><em><span style="text-transform: capitalize">{{ teamName }}</span> - {{ coachName }}</em></td>
                               <td align="right">x 1</td>
-                              <td align="right">£5.00</td>
+                              <td align="right">FREE</td>
                             </tr>
                           @end
                           <tr>
@@ -133,6 +132,19 @@
                         </table>
                       </td>
                     </tr>
+                    @if(session === 'EARLY')
+                      <tr>
+                        <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
+                          <div style="font-family:Roboto, Arial, sans-serif;font-size:13px;line-height:1.4;text-align:left;color:#000000;font-weight:600">PLEASE NOTE: The above tickets are for the {{ session }} session only (11am-3pm - Girls Wildcats 5-11 years, Football development 3-6 years, Girls Under 7s-Under 11s). Doors will open from 11am with a prompt 12pm start.</div>
+                        </td>
+                      </tr>
+                    @elseif(session === 'LATE')
+                      <tr>
+                        <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
+                          <div style="font-family:Roboto, Arial, sans-serif;font-size:13px;line-height:1.4;text-align:left;color:#000000;font-weight:600">PLEASE NOTE: The above tickets are for the {{ session }} session only (6-10pm - Boys Under 7s - Under 16s). Doors will open from 6pm with a prompt 7pm start.</div>
+                        </td>
+                      </tr>
+                    @endif
                     <tr>
                       <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
                         <div style="font-family:Roboto, Arial, sans-serif;font-size:13px;line-height:1.4;text-align:left;color:#000000;">If you have any questions or concerns regarding your tickets, please send us an email at <a href="mailto:info@newcastlecityjuniors.co.uk">info@newcastlecityjuniors.co.uk</a>.</div>

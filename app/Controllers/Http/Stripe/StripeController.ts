@@ -655,12 +655,12 @@ export default class StripeController {
           ageGroup: request.input('form.ageGroup'),
           teamName: request.input('form.teamName'),
           coachName: request.input('form.coachName'),
-          earlyTicketsRequired: request.input('form.earlyTicketsRequired'),
-          lateTicketsRequired: request.input('form.lateTicketsRequired'),
+          ticketsRequired: request.input('form.ticketsRequired'),
           guestNames: request.input('form.guestNames'),
           emailAddress: request.input('form.emailAddress'),
-          hasPlayerTicket: request.input('form.hasPlayerTicket'),
+          needsPlayerTicket: request.input('form.needsPlayerTicket'),
           orderType: 'presentation-2024',
+          giftAidOptedIn: 'true',
         },
       })
 
@@ -675,12 +675,12 @@ export default class StripeController {
           ageGroup: request.input('form.ageGroup'),
           teamName: request.input('form.teamName'),
           coachName: request.input('form.coachName'),
-          earlyTicketsRequired: request.input('form.earlyTicketsRequired'),
-          lateTicketsRequired: request.input('form.lateTicketsRequired'),
+          ticketsRequired: request.input('form.ticketsRequired'),
           guestNames: request.input('form.guestNames'),
           emailAddress: request.input('form.emailAddress'),
-          hasPlayerTicket: request.input('form.hasPlayerTicket'),
+          needsPlayerTicket: request.input('form.needsPlayerTicket'),
           orderType: 'presentation-2024',
+          giftAidOptedIn: 'true',
         },
       })
     }

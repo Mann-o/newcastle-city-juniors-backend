@@ -33,6 +33,7 @@ Route.group(() => {
       Route.post('/', 'Club/PlayerController.createPlayer')
       Route.get('/:playerId', 'Club/PlayerController.getPlayer')
       Route.patch('/:playerId', 'Club/PlayerController.updatePlayer')
+      Route.post('/cleanup-temp-files', 'Club/PlayerController.cleanupTempFiles')
     }).prefix('/players')
   })
     .prefix('/club')

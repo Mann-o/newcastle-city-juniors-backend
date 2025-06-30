@@ -2,8 +2,13 @@ import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Database from '@ioc:Adonis/Lucid/Database'
 import Env from '@ioc:Adonis/Core/Env'
 import Mail from '@ioc:Adonis/Addons/Mail'
+import Drive from '@ioc:Adonis/Core/Drive'
+import { DateTime } from 'luxon'
 
 import Stripe from 'stripe'
+import Player from 'App/Models/Player'
+import User from 'App/Models/User'
+import StripeTransactionService from 'App/Services/StripeTransactionService'
 
 export default class StripeCheckoutCompleteController {
   public async handleStripeWebhook({ request, response }: HttpContextContract) {
@@ -31,6 +36,9 @@ export default class StripeCheckoutCompleteController {
     }
 
     switch (event.type) {
+      case 'checkout.session.completed':
+        await this.handleCheckoutSessionCompleted(event.data.object);
+        break;
       case 'payment_intent.succeeded':
         switch (event.data.object?.metadata?.orderType) {
           case 'summer-camp-2023':
@@ -226,6 +234,12 @@ export default class StripeCheckoutCompleteController {
   }
 
   public async handleFootyTalkIn2023PaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+      apiVersion: Env.get('STRIPE_API_VERSION'),
+    });
+
+    const postcode = await this.getBillingDetailsFromPaymentIntent(paymentIntent, stripeClient);
+
     await Database
       .insertQuery()
       .table('footy_talk_in_signups')
@@ -233,7 +247,7 @@ export default class StripeCheckoutCompleteController {
         full_name: paymentIntent.metadata.fullName,
         house_name_and_number: paymentIntent.metadata.houseNameAndNumber,
         city: paymentIntent.metadata.city,
-        postcode: paymentIntent!.charges!.data[0]!.billing_details!.address!.postal_code,
+        postcode: postcode,
         email_address: paymentIntent.metadata.emailAddress,
         contact_number: paymentIntent.metadata.contactNumber,
         booking_name: paymentIntent.metadata.bookingName,
@@ -252,7 +266,7 @@ export default class StripeCheckoutCompleteController {
               <li><strong>Email Address:</strong> ${paymentIntent.metadata.emailAddress}</li>
               <li><strong>House Name/No:</strong> ${paymentIntent.metadata.houseNameAndNumber}</li>
               <li><strong>City:</strong> ${paymentIntent.metadata.city}</li>
-              <li><strong>Postcode:</strong> ${paymentIntent!.charges!.data[0]!.billing_details!.address!.postal_code}</li>
+              <li><strong>Postcode:</strong> ${postcode || 'Not provided'}</li>
               <li><strong>Email Address:</strong> ${paymentIntent.metadata.emailAddress}</li>
               <li><strong>Contact Number:</strong> ${paymentIntent.metadata.contactNumber}</li>
               <li><strong>Booking Name:</strong> ${paymentIntent.metadata.bookingName}</li>
@@ -263,6 +277,12 @@ export default class StripeCheckoutCompleteController {
   }
 
   public async handleFootyTalkIn2024PaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+      apiVersion: Env.get('STRIPE_API_VERSION'),
+    });
+
+    const postcode = await this.getBillingDetailsFromPaymentIntent(paymentIntent, stripeClient);
+
     await Database
       .insertQuery()
       .table('footy_talk_in_signups_2024')
@@ -270,7 +290,7 @@ export default class StripeCheckoutCompleteController {
         full_name: paymentIntent.metadata.fullName,
         house_name_and_number: paymentIntent.metadata.houseNameAndNumber,
         city: paymentIntent.metadata.city,
-        postcode: paymentIntent!.charges!.data[0]!.billing_details!.address!.postal_code,
+        postcode: postcode,
         email_address: paymentIntent.metadata.emailAddress,
         contact_number: paymentIntent.metadata.contactNumber,
         booking_name: paymentIntent.metadata.bookingName,
@@ -289,7 +309,7 @@ export default class StripeCheckoutCompleteController {
               <li><strong>Email Address:</strong> ${paymentIntent.metadata.emailAddress}</li>
               <li><strong>House Name/No:</strong> ${paymentIntent.metadata.houseNameAndNumber}</li>
               <li><strong>City:</strong> ${paymentIntent.metadata.city}</li>
-              <li><strong>Postcode:</strong> ${paymentIntent!.charges!.data[0]!.billing_details!.address!.postal_code}</li>
+              <li><strong>Postcode:</strong> ${postcode || 'Not provided'}</li>
               <li><strong>Email Address:</strong> ${paymentIntent.metadata.emailAddress}</li>
               <li><strong>Contact Number:</strong> ${paymentIntent.metadata.contactNumber}</li>
               <li><strong>Booking Name:</strong> ${paymentIntent.metadata.bookingName}</li>
@@ -300,6 +320,12 @@ export default class StripeCheckoutCompleteController {
   }
 
   public async handleFootyTalkIn2025PaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+      apiVersion: Env.get('STRIPE_API_VERSION'),
+    });
+
+    const postcode = await this.getBillingDetailsFromPaymentIntent(paymentIntent, stripeClient);
+
     await Database
       .insertQuery()
       .table('footy_talk_in_signups_2025')
@@ -307,7 +333,7 @@ export default class StripeCheckoutCompleteController {
         full_name: paymentIntent.metadata.fullName,
         house_name_and_number: paymentIntent.metadata.houseNameAndNumber,
         city: paymentIntent.metadata.city,
-        postcode: paymentIntent!.charges!.data[0]!.billing_details!.address!.postal_code,
+        postcode: postcode,
         email_address: paymentIntent.metadata.emailAddress,
         contact_number: paymentIntent.metadata.contactNumber,
         ticket_option: paymentIntent.metadata.ticketOption,
@@ -326,7 +352,7 @@ export default class StripeCheckoutCompleteController {
             <li><strong>Email Address:</strong> ${paymentIntent.metadata.emailAddress}</li>
             <li><strong>House Name/No:</strong> ${paymentIntent.metadata.houseNameAndNumber}</li>
             <li><strong>City:</strong> ${paymentIntent.metadata.city}</li>
-            <li><strong>Postcode:</strong> ${paymentIntent!.charges!.data[0]!.billing_details!.address!.postal_code}</li>
+            <li><strong>Postcode:</strong> ${postcode || 'Not provided'}</li>
             <li><strong>Contact Number:</strong> ${paymentIntent.metadata.contactNumber}</li>
             <li><strong>Ticket Option:</strong> ${paymentIntent.metadata.ticketOption}</li>
             <li><strong>Amount Paid:</strong> £${(paymentIntent.amount_received / 100).toFixed(2)}</li>
@@ -454,5 +480,330 @@ export default class StripeCheckoutCompleteController {
           session: paymentIntent.metadata.session.toUpperCase(),
         });
     });
+  }
+
+  public async handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+    try {
+      const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+        apiVersion: Env.get('STRIPE_API_VERSION'),
+      });
+
+      const registrationId = session.metadata?.registrationId;
+      const playerType = session.metadata?.playerType;
+
+      if (!registrationId || !playerType) {
+        console.log('Missing registration metadata in checkout session');
+        return;
+      }
+
+      // Extract player data from session metadata
+      const playerData = {
+        userId: parseInt(session.metadata?.userId || '0'),
+        firstName: session.metadata?.firstName || '',
+        middleNames: session.metadata?.middleNames || '',
+        lastName: session.metadata?.lastName || '',
+        dateOfBirth: session.metadata?.dateOfBirth || '',
+        sex: session.metadata?.sex || '',
+        medicalConditions: session.metadata?.medicalConditions || '',
+        mediaConsented: session.metadata?.mediaConsented === 'true',
+        ageGroup: session.metadata?.ageGroup || '',
+        team: session.metadata?.team || '',
+        secondTeam: session.metadata?.secondTeam || '',
+        paymentDate: parseInt(session.metadata?.paymentDate || '15'),
+        membershipFeeOption: session.metadata?.membershipFeeOption || '',
+        acceptedCodeOfConduct: session.metadata?.acceptedCodeOfConduct === 'true',
+        acceptedDeclaration: session.metadata?.acceptedDeclaration === 'true',
+        giftAidDeclarationAccepted: session.metadata?.giftAidDeclarationAccepted === 'true',
+        parentId: parseInt(session.metadata?.parentId || '0'),
+        identityVerificationPhoto: session.metadata?.identityVerificationPhoto || '',
+        ageVerificationPhoto: session.metadata?.ageVerificationPhoto || '',
+        existingPlayerId: session.metadata?.existingPlayerId || '',
+      };
+
+      if (!playerData.userId || !playerData.firstName || !playerData.lastName) {
+        console.error('Invalid player data in session metadata:', playerData);
+        return;
+      }
+
+      const user = await User.findOrFail(playerData.userId);
+
+      // Move temp files to permanent locations using helper method
+      const finalIdentityFileName = await this.moveVerificationFile(
+        playerData.identityVerificationPhoto,
+        'identity-verification-photos'
+      );
+      const finalAgeFileName = await this.moveVerificationFile(
+        playerData.ageVerificationPhoto,
+        'age-verification-photos'
+      );
+
+      // Run cleanup for orphaned temp files (async, don't wait for completion)
+      this.cleanupOrphanedTempFiles(24).catch(error => {
+        console.error('Background cleanup failed:', error);
+      });
+
+      let player: Player;
+
+      // Check if this is updating an existing player or creating a new one
+      if (playerData.existingPlayerId) {
+        player = await Player.findOrFail(parseInt(playerData.existingPlayerId));
+
+        // Update existing player with new data
+        player.firstName = playerData.firstName;
+        player.middleNames = playerData.middleNames;
+        player.lastName = playerData.lastName;
+        player.dateOfBirth = DateTime.fromISO(playerData.dateOfBirth);
+        player.sex = playerData.sex;
+        player.medicalConditions = playerData.medicalConditions;
+        player.mediaConsented = playerData.mediaConsented;
+        player.ageGroup = playerData.ageGroup;
+        player.team = playerData.team;
+        player.secondTeam = playerData.secondTeam;
+        player.paymentDate = playerData.paymentDate;
+        player.membershipFeeOption = playerData.membershipFeeOption;
+        player.acceptedCodeOfConduct = playerData.acceptedCodeOfConduct;
+        player.acceptedDeclaration = playerData.acceptedDeclaration;
+        player.giftAidDeclarationAccepted = playerData.giftAidDeclarationAccepted;
+        player.parentId = playerData.parentId;
+        player.identityVerificationPhoto = finalIdentityFileName;
+        player.ageVerificationPhoto = finalAgeFileName;
+
+        await player.save();
+      } else {
+        // Create new player
+        player = await Player.create({
+          userId: playerData.userId,
+          firstName: playerData.firstName,
+          middleNames: playerData.middleNames,
+          lastName: playerData.lastName,
+          dateOfBirth: DateTime.fromISO(playerData.dateOfBirth),
+          sex: playerData.sex,
+          medicalConditions: playerData.medicalConditions,
+          mediaConsented: playerData.mediaConsented,
+          ageGroup: playerData.ageGroup,
+          team: playerData.team,
+          secondTeam: playerData.secondTeam,
+          paymentDate: playerData.paymentDate,
+          membershipFeeOption: playerData.membershipFeeOption,
+          acceptedCodeOfConduct: playerData.acceptedCodeOfConduct,
+          acceptedDeclaration: playerData.acceptedDeclaration,
+          giftAidDeclarationAccepted: playerData.giftAidDeclarationAccepted,
+          parentId: playerData.parentId,
+          identityVerificationPhoto: finalIdentityFileName,
+          ageVerificationPhoto: finalAgeFileName,
+        });
+      }
+
+      console.log(`Player ${playerData.existingPlayerId ? 'updated' : 'created'}: ${player.id} - ${player.firstName} ${player.lastName}`);
+
+      // Store transaction data in our database for faster future queries
+      const transactionService = new StripeTransactionService();
+
+      // Set the payment method as default for future payments
+      if (session.payment_method_types?.includes('card') && session.customer) {
+        const paymentMethods = await stripeClient.paymentMethods.list({
+          customer: session.customer as string,
+          type: 'card',
+        });
+
+        // Get the most recent payment method (likely the one just used)
+        const latestPaymentMethod = paymentMethods.data[0];
+        if (latestPaymentMethod) {
+          await stripeClient.customers.update(session.customer as string, {
+            invoice_settings: {
+              default_payment_method: latestPaymentMethod.id,
+            },
+          });
+        }
+      }
+
+      switch (playerType) {
+        case 'coach':
+          // For coaches, subscription is already created by Stripe Checkout
+          if (session.subscription) {
+            player.stripeSubscriptionId = session.subscription as string;
+            await player.save();
+
+            // Store subscription in our database
+            const subscription = await stripeClient.subscriptions.retrieve(session.subscription as string);
+            await transactionService.storeSubscription(subscription, player.id, session.id);
+          }
+          break;
+
+        case 'upfront':
+          // For upfront payments, store the payment intent ID
+          if (session.payment_intent) {
+            player.stripeUpfrontPaymentId = session.payment_intent as string;
+            await player.save();
+
+            // Store upfront payment in our database
+            const paymentIntent = await stripeClient.paymentIntents.retrieve(session.payment_intent as string);
+            await transactionService.storePayment(paymentIntent, 'upfront_payment', player.id, undefined, session.id);
+          }
+          break;
+
+        case 'subscription':
+          // Store the registration fee payment intent ID
+          if (session.payment_intent) {
+            player.stripeRegistrationFeeId = session.payment_intent as string;
+
+            // Store registration fee payment in our database
+            const paymentIntent = await stripeClient.paymentIntents.retrieve(session.payment_intent as string);
+            await transactionService.storePayment(paymentIntent, 'registration_fee', player.id, undefined, session.id);
+          }
+
+          // For subscription players, create the subscription after registration fee payment
+          const subscriptionPrice = session.metadata?.subscriptionPrice;
+          const trialEndDate = session.metadata?.trialEndDate ? parseInt(session.metadata.trialEndDate) : null;
+          const cancelAtDate = session.metadata?.cancelAtDate ? parseInt(session.metadata.cancelAtDate) : null;
+
+          if (subscriptionPrice && trialEndDate && cancelAtDate) {
+            // Get default payment method for the customer
+            let defaultPaymentMethod: string | undefined;
+            if (user.stripeCustomerId) {
+              const customer = await stripeClient.customers.retrieve(user.stripeCustomerId) as Stripe.Customer;
+              defaultPaymentMethod = typeof customer.invoice_settings?.default_payment_method === 'string'
+                ? customer.invoice_settings.default_payment_method
+                : undefined;
+            }
+
+            /**
+             * ANTI-PRORATION STRATEGY:
+             *
+             * To ensure May payment is taken in full without proration:
+             * 1. Set cancel_at to AFTER the final billing period (June 15th, not May 15th)
+             * 2. Use proration_behavior: 'none' to disable all proration
+             * 3. Disable automatic_tax to prevent billing complications
+             *
+             * This ensures:
+             * - Monthly payments: July 15 → May 15 (all full amounts)
+             * - Final payment: May 15, 2026 (full month)
+             * - Cancellation: June 15, 2026 (after May billing cycle ends)
+             */
+
+            // Create subscription with explicit anti-proration settings
+            const subscription = await stripeClient.subscriptions.create({
+              customer: user.stripeCustomerId,
+              trial_end: trialEndDate,
+              cancel_at: cancelAtDate,
+              items: [{
+                price: subscriptionPrice,
+                // Ensure no quantity adjustments or proration
+              }],
+              // Critical: Prevent all proration
+              proration_behavior: 'none',
+              // Disable automatic tax to prevent complications
+              automatic_tax: {
+                enabled: false,
+              },
+              ...(defaultPaymentMethod && { default_payment_method: defaultPaymentMethod }),
+            });
+
+            player.stripeSubscriptionId = subscription.id;
+
+            // Store subscription in our database
+            await transactionService.storeSubscription(subscription, player.id, session.id);
+
+            // Log subscription creation for debugging
+            console.log(`Created subscription ${subscription.id} for player ${player.id}:`, {
+              trialEnd: new Date(trialEndDate * 1000).toISOString(),
+              cancelAt: new Date(cancelAtDate * 1000).toISOString(),
+              prorationBehavior: 'none'
+            });
+          }
+
+          await player.save();
+          break;
+
+        default:
+          console.log(`Unknown player type: ${playerType}`);
+      }
+
+      console.log(`Successfully processed checkout for player ${player.id} (${playerType})`);
+    } catch (error) {
+      console.error('Error processing checkout session completed:', error);
+    }
+  }
+
+  /**
+   * Helper method to safely extract billing details from PaymentIntent
+   * In newer Stripe API versions, charges may not be expanded by default
+   */
+  private async getBillingDetailsFromPaymentIntent(paymentIntent: Stripe.PaymentIntent, stripeClient: Stripe): Promise<string | null> {
+    try {
+      // Get from latest_charge
+      if (paymentIntent.latest_charge && typeof paymentIntent.latest_charge === 'string') {
+        const charge = await stripeClient.charges.retrieve(paymentIntent.latest_charge);
+        return charge.billing_details?.address?.postal_code || null;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error extracting billing details:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Helper method to safely move temp verification files to permanent storage
+   * @param tempFileName - The temporary file name (with temp_ prefix)
+   * @param targetDirectory - Target directory ('identity-verification-photos' or 'age-verification-photos')
+   * @returns The final filename (without temp_ prefix) or the original temp filename if moving fails
+   */
+  private async moveVerificationFile(tempFileName: string, targetDirectory: string): Promise<string> {
+    const finalFileName = tempFileName.replace('temp_', '');
+
+    try {
+      const spacesDriver = Drive.use('spaces');
+      const tempFilePath = `temp-verification-photos/${tempFileName}`;
+      const finalFilePath = `${targetDirectory}/${finalFileName}`;
+
+      // Check if temp file exists
+      const tempExists = await spacesDriver.exists(tempFilePath);
+      if (!tempExists) {
+        console.warn(`Temp file not found: ${tempFilePath}`);
+        return tempFileName; // Return original temp filename as fallback
+      }
+
+      // Copy file to permanent location
+      const fileContent = await spacesDriver.get(tempFilePath);
+      await spacesDriver.put(finalFilePath, fileContent);
+
+      // Delete temp file
+      await spacesDriver.delete(tempFilePath);
+
+      console.log(`Successfully moved file: ${tempFilePath} → ${finalFilePath}`);
+      return finalFileName;
+
+    } catch (error) {
+      console.error(`Failed to move file ${tempFileName} to ${targetDirectory}:`, error);
+      return tempFileName; // Return original temp filename as fallback
+    }
+  }
+
+  /**
+   * Cleanup orphaned temp files older than specified hours
+   * Note: This is a simplified cleanup - in production you might want to use
+   * a more sophisticated approach with object listing and filtering
+   * @param maxAgeHours - Maximum age in hours before files are considered orphaned
+   */
+  private async cleanupOrphanedTempFiles(maxAgeHours: number = 24): Promise<void> {
+    try {
+      // Note: Manual cleanup implementation
+      // Since we can't easily list files with the current driver interface,
+      // this method serves as a placeholder for future implementation
+      // You could implement this using:
+      // 1. AWS SDK directly for more advanced operations
+      // 2. A scheduled job that tracks temp files in database
+      // 3. S3 lifecycle policies for automatic cleanup
+
+      console.log(`Cleanup initiated for temp files older than ${maxAgeHours} hours`);
+
+      // TODO: Implement actual file listing and cleanup logic
+      // For now, this is a no-op that logs the intention
+
+    } catch (error) {
+      console.error('Error during temp file cleanup:', error);
+    }
   }
 }

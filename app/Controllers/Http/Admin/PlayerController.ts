@@ -3,11 +3,11 @@ import Env from '@ioc:Adonis/Core/Env'
 import Database from '@ioc:Adonis/Lucid/Database'
 
 import Stripe from 'stripe'
-import { format, fromUnixTime } from 'date-fns';
 
 import Player from 'App/Models/Player'
 import Parent from 'App/Models/Parent'
 import User from 'App/Models/User'
+import StripeTransactionService from 'App/Services/StripeTransactionService'
 
 export default class PlayerController {
   public async getAllPlayers({ auth, response }: HttpContextContract) {
@@ -117,64 +117,9 @@ export default class PlayerController {
       return response.unauthorized()
     }
 
-    const players = await Player.query()
-      .where('membership_fee_option', 'subscription')
-      .preload('user')
-      .orderBy('last_name', 'asc')
-
-    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
-      apiVersion: Env.get('STRIPE_API_VERSION'),
-    })
-
-    const subscriptions: Stripe.Subscription[] = []
-
-    for await (const subscription of stripeClient.subscriptions.list({
-      limit: 100,
-      created: {
-        gt: 1626134400,
-      },
-      expand: ['data.latest_invoice'],
-    })) {
-      subscriptions.push(subscription)
-    }
-
-    for (const player of players as Player[]) {
-      const subscription = subscriptions.find(({ id }) => id === player.stripeSubscriptionId)
-
-      player.subscription = subscription ? subscription : 'not_setup'
-    }
-
-    const ageGroups = Object.entries(
-      players.reduce((acc, player: any) => {
-        const mappedPlayer = {
-          name: player.full_name,
-          paid: player.paid,
-          team: player.team,
-          stripeSubscriptionId: player.stripeSubscriptionId,
-          subscriptionStatus: player.subscription === 'not_setup' ? 'not_setup' : player.subscription.status,
-          ...(player.subscription !== 'not_setup' && {
-            firstPaymentDate:
-              player.subscription.status === 'trialing'
-                ? format(fromUnixTime(player.subscription.trial_end), 'dd/MM/yyyy')
-                : format(fromUnixTime(player.subscription.billing_cycle_anchor), 'dd/MM/yyyy'),
-          }),
-          user: player.user,
-        }
-
-        if (acc.hasOwnProperty(player.ageGroup)) {
-          acc[player.ageGroup].push(mappedPlayer)
-        } else {
-          acc[player.ageGroup] = [mappedPlayer]
-        }
-
-        return acc
-      }, {}),
-    )
-      .map(([ageGroup, players]) => ({
-        ageGroup,
-        players,
-      }))
-      .sort((a, b) => parseInt(a.ageGroup) - parseInt(b.ageGroup))
+    // Use the fast local database query instead of slow Stripe API calls
+    const transactionService = new StripeTransactionService();
+    const ageGroups = await transactionService.getSubscriptionSchedule();
 
     return response.ok({
       status: 'OK',
@@ -346,14 +291,26 @@ export default class PlayerController {
 
             if (subscription.status === 'active' || subscription.status === 'trialing') {
               formattedPlayer.paymentInfo.subscriptionUpToDate = true
-            } else if (
-              subscription.latest_invoice != null
-              && typeof subscription.latest_invoice !== 'string'
-              && typeof subscription.latest_invoice.payment_intent !== 'string'
-            ) {
-              formattedPlayer.paymentInfo.notes = subscription.latest_invoice.payment_intent?.last_payment_error?.message || 'Unknown Error'
             } else {
-              formattedPlayer.paymentInfo.notes = 'Unknown Error'
+              // Handle payment error from latest invoice
+              try {
+                if (
+                  subscription.latest_invoice != null
+                  && typeof subscription.latest_invoice !== 'string'
+                ) {
+                  const invoice = subscription.latest_invoice as any; // Type assertion for newer API
+                  if (invoice.payment_intent && typeof invoice.payment_intent !== 'string') {
+                    const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent;
+                    formattedPlayer.paymentInfo.notes = paymentIntent.last_payment_error?.message || 'Payment failed'
+                  } else {
+                    formattedPlayer.paymentInfo.notes = 'Payment failed'
+                  }
+                } else {
+                  formattedPlayer.paymentInfo.notes = 'No invoice found'
+                }
+              } catch (error) {
+                formattedPlayer.paymentInfo.notes = 'Unable to retrieve payment status'
+              }
             }
           } else {
             formattedPlayer.paymentInfo.notes = 'Subscription not found'

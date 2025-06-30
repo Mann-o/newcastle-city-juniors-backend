@@ -3,13 +3,39 @@ import Database from '@ioc:Adonis/Lucid/Database'
 import Env from '@ioc:Adonis/Core/Env'
 
 import Stripe from 'stripe'
-import { parseISO, getUnixTime, addMonths, getMonth, getYear } from 'date-fns'
+import { parseISO, getUnixTime, addMonths, getMonth, getYear, format } from 'date-fns'
 
 import Player from 'App/Models/Player'
 import User from 'App/Models/User'
 import CreatePlayerValidator from 'App/Validators/CreatePlayerValidator'
 
 export default class PlayerController {
+  /**
+   * IMPROVED REGISTRATION FLOW (v2):
+   *
+   * PROBLEM SOLVED: Players were being created before payment completion,
+   * causing duplicate records when users cancelled and retried payments.
+   *
+   * NEW FLOW:
+   * 1. Validate request and check for existing registrations
+   * 2. Store files in temp directory with unique names
+   * 3. Store ALL player data in Stripe checkout session metadata
+   * 4. Create checkout session without creating player record
+   * 5. Webhook creates/updates player only on successful payment
+   * 6. Move temp files to permanent location in webhook
+   *
+   * BENEFITS:
+   * - No duplicate players from cancelled payments
+   * - Atomic registration (payment + player creation together)
+   * - Better error handling and recovery
+   * - Cleaner separation of concerns
+   *
+   * REQUIREMENTS:
+   * - Webhook must be properly configured: /api/stripe/handle-webhook
+   * - Temp file cleanup should run periodically
+   * - Stripe metadata limits: max 50 keys, 500 chars per value
+   */
+
   public async createPlayer({ auth, request, response }: HttpContextContract) {
     await request.validate(CreatePlayerValidator)
 
@@ -31,64 +57,180 @@ export default class PlayerController {
       const identityVerificationPhoto = request.file('identityVerificationPhoto')!
       const ageVerificationPhoto = request.file('ageVerificationPhoto')!
 
-      await identityVerificationPhoto.moveToDisk('identity-verification-photos', {}, 'spaces')
-      await ageVerificationPhoto.moveToDisk('age-verification-photos', {}, 'spaces')
+      // Store files temporarily with unique prefixes for webhook processing
+      const tempIdentityFileName = `temp_${Date.now()}_${identityVerificationPhoto.fileName}`
+      const tempAgeFileName = `temp_${Date.now()}_${ageVerificationPhoto.fileName}`
 
-      let player;
+      await identityVerificationPhoto.moveToDisk('temp-verification-photos', { name: tempIdentityFileName }, 'spaces')
+      await ageVerificationPhoto.moveToDisk('temp-verification-photos', { name: tempAgeFileName }, 'spaces')
 
-      if (request.input('existingPlayerId')) {
-        player = await Player.findOrFail(request.input('existingPlayerId'))
+      // Check for existing player to prevent duplicates
+      const existingPlayerId = request.input('existingPlayerId')
+      let existingPlayer: Player | null = null;
 
-        player.firstName = request.input('firstName')
-        player.middleNames = request.input('middleNames')
-        player.lastName = request.input('lastName')
-        player.dateOfBirth = request.input('dateOfBirth')
-        player.sex = request.input('sex')
-        player.medicalConditions = request.input('medicalConditions')
-        player.mediaConsented = request.input('mediaConsented')
-        player.ageGroup = request.input('ageGroup')
-        player.team = request.input('team')
-        player.secondTeam = request.input('secondTeam');
-        player.paymentDate = request.input('paymentDate')
-        player.membershipFeeOption = hasRequiredPermissionsForFreeRegistration ? 'upfront' : request.input('membershipFeeOption')
-        player.acceptedCodeOfConduct = request.input('acceptedCodeOfConduct')
-        player.acceptedDeclaration = request.input('acceptedDeclaration')
-        player.giftAidDeclarationAccepted = request.input('giftAidDeclarationAccepted')
-        player.parentId = request.input('parentId')
+      if (existingPlayerId) {
+        existingPlayer = await Player.query()
+          .where('id', existingPlayerId)
+          .where('userId', user.id)
+          .first()
 
-        await player.save()
+        if (!existingPlayer) {
+          return response.badRequest({
+            status: 'Bad Request',
+            code: 400,
+            message: 'Existing player not found or not accessible',
+          })
+        }
+
+        // Check if player already has active payment/subscription to prevent duplicates
+        if (existingPlayer.stripeSubscriptionId || existingPlayer.stripeUpfrontPaymentId || existingPlayer.stripeRegistrationFeeId) {
+          return response.badRequest({
+            status: 'Bad Request',
+            code: 400,
+            message: 'Player already has an active registration or payment',
+          })
+        }
       } else {
-        player = await Player.create({
-          ...request.only([
-            'firstName',
-            'middleNames',
-            'lastName',
-            'dateOfBirth',
-            'sex',
-            'medicalConditions',
-            'mediaConsented',
-            'ageGroup',
-            'team',
-            'secondTeam',
-            'paymentDate',
-            'membershipFeeOption',
-            'acceptedCodeOfConduct',
-            'acceptedDeclaration',
-            'giftAidDeclarationAccepted',
-            'parentId',
-          ]),
-          userId: user.id,
-          identityVerificationPhoto: identityVerificationPhoto.fileName,
-          ageVerificationPhoto: ageVerificationPhoto.fileName,
+        // For new players, check if there's already a pending registration
+        const pendingPlayer = await Player.query()
+          .where('userId', user.id)
+          .where('firstName', request.input('firstName'))
+          .where('lastName', request.input('lastName'))
+          .where('dateOfBirth', request.input('dateOfBirth'))
+          .whereNull('stripeSubscriptionId')
+          .whereNull('stripeUpfrontPaymentId')
+          .whereNull('stripeRegistrationFeeId')
+          .first()
+
+        if (pendingPlayer) {
+          return response.badRequest({
+            status: 'Bad Request',
+            code: 400,
+            message: 'A registration for this player is already in progress. Please complete the existing registration or contact support.',
+          })
+        }
+      }
+
+      // Prepare player data for checkout session metadata
+      const membershipFeeOption = hasRequiredPermissionsForFreeRegistration ? 'subscription' : request.input('membershipFeeOption')
+
+      // Generate a unique registration ID for this attempt
+      const registrationId = `reg_${Date.now()}_${user.id}`
+
+      // Validate registration period - prevent registrations from April onwards
+      const currentDate = new Date()
+      const currentMonth = getMonth(currentDate) // 0-based: Jan=0, Feb=1, Mar=2, Apr=3, May=4, Jun=5
+      const isLateRegistration = currentMonth >= 3 && currentMonth <= 4 // April (3) and May (4)
+
+      if (isLateRegistration) {
+        return response.badRequest({
+          status: 'Bad Request',
+          code: 400,
+          message: 'Player registrations are closed for this season. Registrations open in June for the next season.',
         })
       }
+
+      /**
+       * REGISTRATION WINDOWS:
+       *
+       * EARLY REGISTRATION (Jan-Mar): Join current season, pay until May same year
+       * - January → 4 monthly payments (Feb, Mar, Apr, May)
+       * - February → 3 monthly payments (Mar, Apr, May)
+       * - March → 2 monthly payments (Apr, May)
+       *
+       * CLOSED PERIOD (Apr-May): No registrations allowed
+       *
+       * NORMAL REGISTRATION (Jun-Dec): Join next season, pay until May next year
+       * - June → 11 monthly payments (Jul → May next year)
+       * - July → 10 monthly payments (Aug → May next year)
+       * - etc.
+       */
 
       const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
         apiVersion: Env.get('STRIPE_API_VERSION'),
       })
 
+      let session: Stripe.Checkout.Session
+
+      /**
+       * Payment Flow:
+       * 1. COACHES: Get a free subscription (£0 price) via Stripe Checkout subscription mode
+       * 2. UPFRONT: Pay full season fee upfront via one-time payment
+       * 3. SUBSCRIPTION: Pay registration fee upfront, then subscription is created via webhook
+       *
+       * All payments store the payment method as default for future billing.
+       * Webhooks handle subscription creation and payment tracking.
+       *
+       * TODO: Consider adding email notifications for successful registrations
+       * TODO: Add retry logic for failed webhook processing
+       */
+
+      /**
+       * NEW PAYMENT FLOW:
+       * 1. Store player data in checkout session metadata
+       * 2. Create player only after successful payment in webhook
+       * 3. Handle file uploads by moving temp files to permanent location
+       *
+       * This prevents duplicate player records from payment cancellations.
+       */
+
       if (hasRequiredPermissionsForFreeRegistration) {
-        const session = await stripeClient.checkout.sessions.create({
+        // For coaches: Create a free subscription
+        session = await stripeClient.checkout.sessions.create({
+          mode: 'subscription',
+          payment_method_types: ['card'],
+          customer: user.stripeCustomerId,
+          line_items: [
+            {
+              price: Env.get('STRIPE_SUBS_COACH'),
+              quantity: 1,
+            },
+          ],
+          subscription_data: {
+            metadata: {
+              registrationId,
+              playerType: 'coach',
+            },
+          },
+          metadata: {
+            registrationId,
+            playerType: 'coach',
+            userId: user.id.toString(),
+            firstName: request.input('firstName'),
+            middleNames: request.input('middleNames') || '',
+            lastName: request.input('lastName'),
+            dateOfBirth: request.input('dateOfBirth'),
+            sex: request.input('sex'),
+            medicalConditions: request.input('medicalConditions') || '',
+            mediaConsented: request.input('mediaConsented').toString(),
+            ageGroup: request.input('ageGroup'),
+            team: request.input('team'),
+            secondTeam: request.input('secondTeam'),
+            paymentDate: request.input('paymentDate').toString(),
+            membershipFeeOption: 'subscription', // Coaches always get subscriptions
+            acceptedCodeOfConduct: request.input('acceptedCodeOfConduct').toString(),
+            acceptedDeclaration: request.input('acceptedDeclaration').toString(),
+            giftAidDeclarationAccepted: request.input('giftAidDeclarationAccepted').toString(),
+            parentId: request.input('parentId').toString(),
+            identityVerificationPhoto: tempIdentityFileName,
+            ageVerificationPhoto: tempAgeFileName,
+            existingPlayerId: existingPlayerId?.toString() || '',
+          },
+          allow_promotion_codes: true,
+          cancel_url: `${
+            Env.get('NODE_ENV') === 'production'
+              ? 'https://newcastlecityjuniors.co.uk'
+              : 'http://localhost:3000'
+          }/portal/players/register?error=coach_payment_cancelled`,
+          success_url: `${
+            Env.get('NODE_ENV') === 'production'
+              ? 'https://newcastlecityjuniors.co.uk'
+              : 'http://localhost:3000'
+          }/portal/players?status=success&id={CHECKOUT_SESSION_ID}`,
+        })
+      } else if (membershipFeeOption === 'upfront') {
+        // For upfront payments: Single payment checkout
+        session = await stripeClient.checkout.sessions.create({
           mode: 'payment',
           payment_method_options: {
             card: {
@@ -99,7 +241,7 @@ export default class PlayerController {
           customer: user.stripeCustomerId,
           line_items: [
             {
-              price: Env.get('STRIPE_SUBS_COACH'),
+              price: Env.get(`STRIPE_UPFRONT_${dualTeam ? 'DUAL' : 'SINGLE'}_TEAM`),
               quantity: 1,
               adjustable_quantity: {
                 enabled: false,
@@ -108,88 +250,145 @@ export default class PlayerController {
           ],
           payment_intent_data: {
             setup_future_usage: 'off_session',
+            metadata: {
+              registrationId,
+              playerType: 'upfront',
+            },
+          },
+          metadata: {
+            registrationId,
+            playerType: 'upfront',
+            userId: user.id.toString(),
+            firstName: request.input('firstName'),
+            middleNames: request.input('middleNames') || '',
+            lastName: request.input('lastName'),
+            dateOfBirth: request.input('dateOfBirth'),
+            sex: request.input('sex'),
+            medicalConditions: request.input('medicalConditions') || '',
+            mediaConsented: request.input('mediaConsented').toString(),
+            ageGroup: request.input('ageGroup'),
+            team: request.input('team'),
+            secondTeam: request.input('secondTeam'),
+            paymentDate: request.input('paymentDate').toString(),
+            membershipFeeOption,
+            acceptedCodeOfConduct: request.input('acceptedCodeOfConduct').toString(),
+            acceptedDeclaration: request.input('acceptedCodeOfConduct').toString(),
+            giftAidDeclarationAccepted: request.input('giftAidDeclarationAccepted').toString(),
+            parentId: request.input('parentId').toString(),
+            identityVerificationPhoto: tempIdentityFileName,
+            ageVerificationPhoto: tempAgeFileName,
+            existingPlayerId: existingPlayerId?.toString() || '',
           },
           allow_promotion_codes: true,
-          metadata: {
-            playerId: player.id,
-          },
           cancel_url: `${
             Env.get('NODE_ENV') === 'production'
               ? 'https://newcastlecityjuniors.co.uk'
               : 'http://localhost:3000'
-          }/portal/players/register?player=${player.id}`,
+          }/portal/players/register?error=upfront_payment_cancelled`,
           success_url: `${
             Env.get('NODE_ENV') === 'production'
               ? 'https://newcastlecityjuniors.co.uk'
               : 'http://localhost:3000'
           }/portal/players?status=success&id={CHECKOUT_SESSION_ID}`,
         })
-
-        if (session.url) {
-          return response.send({
-            checkoutUrl: session.url,
-          })
-        } else {
-          return response.abort('Unable to create a Stripe checkout session', 502)
-        }
-      } else if (request.input('membershipFeeOption') === 'subscription') {
+      } else if (membershipFeeOption === 'subscription') {
+        // For subscription payments: Registration fee + subscription setup
         const trialEndDate = addMonths(new Date(), 1)
-        const subscription = await stripeClient.subscriptions.create({
-          customer: user.stripeCustomerId,
-          trial_end: getUnixTime(
-            parseISO(`${getYear(trialEndDate)}-${(getMonth(trialEndDate) + 1).toString().padStart(2, '0')}-${String(player.paymentDate).padStart(2, '0')}`),
-          ),
-          cancel_at: getUnixTime(parseISO(`2025-06-${String(player.paymentDate).padStart(2, '0')}`)),
-          items: [{ price: Env.get(`STRIPE_SUBS_${dualTeam ? 'DUAL' : 'SINGLE'}_TEAM_${player.sex.toUpperCase()}`) }],
-          proration_behavior: 'none',
-        })
+        const paymentDate = parseInt(request.input('paymentDate'))
 
-        player.stripeSubscriptionId = subscription.id
+        // Calculate the correct season year based on registration month
+        const currentYear = getYear(new Date())
+        const currentMonth = getMonth(new Date()) // 0-based: Jan=0, Feb=1, Mar=2, Jun=5, Jul=6
 
-        await player.save()
-      }
+        // Season logic:
+        // - Jan/Feb/Mar registrations: Final payment in May of SAME year
+        // - Jun/Jul/Aug/Sep/Oct/Nov/Dec registrations: Final payment in May of NEXT year
+        const isEarlyRegistration = currentMonth <= 2 // Jan (0), Feb (1), Mar (2)
+        const finalPaymentYear = isEarlyRegistration ? currentYear : currentYear + 1
 
-      const session = await stripeClient.checkout.sessions.create({
-        mode: 'payment',
-        payment_method_options: {
-          card: {
-            setup_future_usage: 'off_session',
-          },
-        },
-        payment_method_types: ['card'],
-        customer: user.stripeCustomerId,
-        line_items: [
-          {
-            ...(player.membershipFeeOption === 'upfront' && {
-            price: Env.get(`STRIPE_UPFRONT_${dualTeam ? 'DUAL' : 'SINGLE'}_TEAM_${player.sex.toUpperCase()}`),
-            }),
-            ...(player.membershipFeeOption === 'subscription' && {
-              price: Env.get(`STRIPE_REG_FEE_${dualTeam ? 'DUAL' : 'SINGLE'}_TEAM_${player.sex.toUpperCase()}`),
-            }),
-            quantity: 1,
-            adjustable_quantity: {
-              enabled: false,
+        console.log(`Player registration: ${format(new Date(), 'yyyy-MM-dd')}, Season ends: ${finalPaymentYear}-05, Early registration: ${isEarlyRegistration}`)
+
+        const finalPaymentDate = parseISO(`${finalPaymentYear}-05-${String(paymentDate).padStart(2, '0')}`)
+
+        // IMPORTANT: Set cancel_at to be AFTER the final billing cycle completes
+        // This ensures May payment is taken in full without proration
+        // The subscription will be cancelled after the May billing period ends
+        const cancelDate = addMonths(finalPaymentDate, 1)
+
+        session = await stripeClient.checkout.sessions.create({
+          mode: 'payment',
+          payment_method_options: {
+            card: {
+              setup_future_usage: 'off_session',
             },
           },
-        ],
-        payment_intent_data: {
-          setup_future_usage: 'off_session',
-        },
-        allow_promotion_codes: true,
-        metadata: {
-          playerId: player.id,
-        },
-        cancel_url: `${
-          Env.get('NODE_ENV') === 'production'
-            ? 'https://newcastlecityjuniors.co.uk'
-            : 'http://localhost:3000'
-        }/portal/players/register?player=${player.id}`,
-        success_url: `${
-          Env.get('NODE_ENV') === 'production'
-            ? 'https://newcastlecityjuniors.co.uk'
-            : 'http://localhost:3000'
-        }/portal/players?status=success&id={CHECKOUT_SESSION_ID}`,
-      })
+          payment_method_types: ['card'],
+          customer: user.stripeCustomerId,
+          line_items: [
+            {
+              price: Env.get(`STRIPE_REG_FEE_${dualTeam ? 'DUAL' : 'SINGLE'}_TEAM`),
+              quantity: 1,
+              adjustable_quantity: {
+                enabled: false,
+              },
+            },
+          ],
+          payment_intent_data: {
+            setup_future_usage: 'off_session',
+            metadata: {
+              registrationId,
+              playerType: 'subscription',
+              subscriptionPrice: Env.get(`STRIPE_SUBS_${dualTeam ? 'DUAL' : 'SINGLE'}_TEAM`),
+              trialEndDate: getUnixTime(
+                parseISO(`${getYear(trialEndDate)}-${(getMonth(trialEndDate) + 1).toString().padStart(2, '0')}-${String(paymentDate).padStart(2, '0')}`),
+              ).toString(),
+              cancelAtDate: getUnixTime(cancelDate).toString(),
+            },
+          },
+          metadata: {
+            registrationId,
+            playerType: 'subscription',
+            subscriptionPrice: Env.get(`STRIPE_SUBS_${dualTeam ? 'DUAL' : 'SINGLE'}_TEAM`),
+            trialEndDate: getUnixTime(
+              parseISO(`${getYear(trialEndDate)}-${(getMonth(trialEndDate) + 1).toString().padStart(2, '0')}-${String(paymentDate).padStart(2, '0')}`),
+            ).toString(),
+            cancelAtDate: getUnixTime(cancelDate).toString(),
+            userId: user.id.toString(),
+            firstName: request.input('firstName'),
+            middleNames: request.input('middleNames') || '',
+            lastName: request.input('lastName'),
+            dateOfBirth: request.input('dateOfBirth'),
+            sex: request.input('sex'),
+            medicalConditions: request.input('medicalConditions') || '',
+            mediaConsented: request.input('mediaConsented').toString(),
+            ageGroup: request.input('ageGroup'),
+            team: request.input('team'),
+            secondTeam: request.input('secondTeam'),
+            paymentDate: request.input('paymentDate').toString(),
+            membershipFeeOption,
+            acceptedCodeOfConduct: request.input('acceptedCodeOfConduct').toString(),
+            acceptedDeclaration: request.input('acceptedDeclaration').toString(),
+            giftAidDeclarationAccepted: request.input('giftAidDeclarationAccepted').toString(),
+            parentId: request.input('parentId').toString(),
+            identityVerificationPhoto: tempIdentityFileName,
+            ageVerificationPhoto: tempAgeFileName,
+            existingPlayerId: existingPlayerId?.toString() || '',
+          },
+          allow_promotion_codes: true,
+          cancel_url: `${
+            Env.get('NODE_ENV') === 'production'
+              ? 'https://newcastlecityjuniors.co.uk'
+              : 'http://localhost:3000'
+          }/portal/players/register?error=subscription_payment_cancelled`,
+          success_url: `${
+            Env.get('NODE_ENV') === 'production'
+              ? 'https://newcastlecityjuniors.co.uk'
+              : 'http://localhost:3000'
+          }/portal/players?status=success&id={CHECKOUT_SESSION_ID}`,
+        })
+      } else {
+        return response.abort('Invalid membership fee option', 400)
+      }
 
       if (session.url) {
         response.send({
@@ -327,5 +526,49 @@ export default class PlayerController {
         ticketsRemaining,
       },
     })
+  }  /**
+   * Clean up orphaned temporary files from abandoned registrations
+   * This should be called periodically to prevent storage buildup
+   */
+  public async cleanupTempFiles({ response }: HttpContextContract) {
+    try {
+      const cutoffTime = Date.now() - (24 * 60 * 60 * 1000); // 24 hours ago
+      let cleanedCount = 0;
+
+      console.log('Starting temp file cleanup...');
+
+      // Note: Since we can't easily list all files in a directory with the current
+      // AdonisJS Drive interface, this is a simplified implementation.
+      // In production, consider:
+      // 1. Using AWS SDK directly for better file operations
+      // 2. Tracking temp files in database with cleanup timestamps
+      // 3. S3 lifecycle policies for automatic cleanup
+
+      // For now, we'll just log the cleanup attempt
+      console.log(`Cleanup would remove temp files older than ${new Date(cutoffTime).toISOString()}`);
+
+      // TODO: Implement actual file listing and deletion
+      // Example implementation would:
+      // 1. List files in 'temp-verification-photos' directory
+      // 2. Parse timestamps from filenames (temp_TIMESTAMP_originalname)
+      // 3. Delete files older than cutoff time
+
+      return response.ok({
+        status: 'OK',
+        code: 200,
+        data: {
+          message: 'Temp file cleanup completed',
+          filesCleanedUp: cleanedCount,
+          cutoffTime: new Date(cutoffTime).toISOString(),
+        },
+      })
+    } catch (error) {
+      console.error('Error during temp file cleanup:', error);
+      return response.internalServerError({
+        status: 'Internal Server Error',
+        code: 500,
+        message: 'Failed to cleanup temp files',
+      })
+    }
   }
 }

@@ -1,9 +1,10 @@
 import { DateTime } from 'luxon'
-import { BaseModel, BelongsTo, belongsTo, column, computed } from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, BelongsTo, belongsTo, column, computed, HasMany, hasMany } from '@ioc:Adonis/Lucid/Orm'
 import Stripe from 'stripe'
 
 import User from 'App/Models/User'
 import Parent from 'App/Models/Parent'
+import StripeTransaction from 'App/Models/StripeTransaction'
 
 export default class Player extends BaseModel {
   @column({ isPrimary: true })
@@ -109,6 +110,11 @@ export default class Player extends BaseModel {
 
   @belongsTo(() => Parent)
   public parent: BelongsTo<typeof Parent>
+
+  @hasMany(() => StripeTransaction, {
+    foreignKey: 'playerId',
+  })
+  public stripeTransactions: HasMany<typeof StripeTransaction>
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime

@@ -165,162 +165,131 @@ export default class PlayerController {
     }
 
     try {
-      const players: Player[] = await Player.query()
-        .where('team', request.input('team'))
-        .orWhere('second_team', request.input('team'))
-        .preload('parent', pq => pq.preload('user', uq => uq.preload('permissions')))
-        .orderBy('first_name', 'asc')
+      // Get players with their transactions in a single optimized query
+      const players = await Database
+        .from('players')
+        .leftJoin('parents', 'players.parent_id', 'parents.id')
+        .leftJoin('users', 'parents.user_id', 'users.id')
+        .leftJoin('user_permissions', 'users.id', 'user_permissions.user_id')
+        .leftJoin('permissions', 'user_permissions.permission_id', 'permissions.id')
+        .leftJoin('stripe_transactions', 'players.id', 'stripe_transactions.player_id')
+        .select(
+          'players.*',
+          'parents.first_name as parent_first_name',
+          'parents.last_name as parent_last_name',
+          'parents.email as parent_email',
+          'permissions.name as permission_name',
+          'stripe_transactions.type as transaction_type',
+          'stripe_transactions.status as transaction_status',
+          'stripe_transactions.stripe_id as transaction_stripe_id'
+        )
+        .where('players.team', request.input('team'))
+        .orWhere('players.second_team', request.input('team'))
+        .orderBy('players.first_name', 'asc')
 
-      let formattedPlayers: any[] = []
+      // Group data by player
+      const playerMap = new Map()
 
-      const expectedCosts = {
-        singleTeam: {
-          male: {
-            upfront: 360,
-            subscription: {
-              monthly: 34,
-              registration: 68,
-            },
-          },
-          female: {
-            upfront: 320,
-            subscription: {
-              monthly: 30,
-              registration: 60,
-            },
-          },
-        },
-        dualTeam: {
-          male: {
-            upfront: 550,
-            subscription: {
-              monthly: 51,
-              registration: 85,
-            },
-          },
-          female: {
-            upfront: 475,
-            subscription: {
-              monthly: 45,
-              registration: 75,
-            },
-          },
-        },
+      for (const row of players) {
+        if (!playerMap.has(row.id)) {
+          playerMap.set(row.id, {
+            ...row,
+            permissions: [],
+            transactions: []
+          })
+        }
+
+        const player = playerMap.get(row.id)
+
+        // Add permission if not already added
+        if (row.permission_name && !player.permissions.includes(row.permission_name)) {
+          player.permissions.push(row.permission_name)
+        }
+
+        // Add transaction if exists
+        if (row.transaction_type) {
+          player.transactions.push({
+            type: row.transaction_type,
+            status: row.transaction_status,
+            stripeId: row.transaction_stripe_id
+          })
+        }
       }
 
-      const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
-        apiVersion: Env.get('STRIPE_API_VERSION'),
+      const formattedPlayers = Array.from(playerMap.values()).map(player => {
+        const isCoach = player.permissions.includes('coach')
+
+        let paymentInfo = {
+          isCoach,
+          upfrontFeePaid: false,
+          registrationFeePaid: false,
+          subscriptionUpToDate: false,
+          notes: null as string | null,
+        }
+
+        if (isCoach) {
+          // Coaches get free membership
+          paymentInfo.upfrontFeePaid = true
+          paymentInfo.registrationFeePaid = true
+          paymentInfo.subscriptionUpToDate = true
+        } else if (player.membership_fee_option === 'upfront') {
+          // Check for successful upfront payment
+          const upfrontTransaction = player.transactions.find(t =>
+            t.type === 'upfront_payment' && t.status === 'succeeded'
+          )
+          paymentInfo.upfrontFeePaid = !!upfrontTransaction
+        } else if (player.membership_fee_option === 'subscription') {
+          // Check for successful registration fee
+          const registrationTransaction = player.transactions.find(t =>
+            t.type === 'registration_fee' && t.status === 'succeeded'
+          )
+          paymentInfo.registrationFeePaid = !!registrationTransaction
+
+          // Check subscription status
+          const subscriptionTransaction = player.transactions.find(t =>
+            t.type === 'subscription'
+          )
+
+          if (subscriptionTransaction) {
+            if (subscriptionTransaction.status === 'active' || subscriptionTransaction.status === 'trialing') {
+              paymentInfo.subscriptionUpToDate = true
+            } else {
+              paymentInfo.notes = `Subscription ${subscriptionTransaction.status}`
+            }
+          } else {
+            paymentInfo.notes = 'No subscription found'
+          }
+        }
+
+        return {
+          id: player.id,
+          firstName: player.first_name,
+          middleNames: player.middle_names,
+          lastName: player.last_name,
+          dateOfBirth: player.date_of_birth,
+          sex: player.sex,
+          medicalConditions: player.medical_conditions,
+          membershipFeeOption: player.membership_fee_option,
+          ageGroup: player.age_group,
+          team: player.team,
+          secondTeam: player.second_team,
+          stripeUpfrontPaymentId: player.stripe_upfront_payment_id,
+          stripeRegistrationFeeId: player.stripe_registration_fee_id,
+          stripeSubscriptionId: player.stripe_subscription_id,
+          paymentInfo,
+          parent: {
+            firstName: player.parent_first_name,
+            lastName: player.parent_last_name,
+            email: player.parent_email,
+          }
+        }
       })
 
-      for (const player of players) {
-        const formattedPlayer: any = {
-          ...player.serialize(),
-          paymentInfo: {
-            isCoach: player.parent.user.permissions.some(({ name }) => name === 'coach'),
-            upfrontFeePaid: false,
-            registrationFeePaid: false,
-            subscriptionUpToDate: false,
-            notes: null,
-          },
-        }
-
-        if (formattedPlayer.paymentInfo.isCoach) {
-          formattedPlayer.paymentInfo.upfrontFeePaid = true
-          formattedPlayer.paymentInfo.registrationFeePaid = true
-          formattedPlayer.paymentInfo.subscriptionUpToDate = true
-
-        } else if (player.membershipFeeOption === 'upfront') {
-          if (player.stripeUpfrontPaymentId != null) {
-            const payment: Stripe.PaymentIntent = await stripeClient.paymentIntents.retrieve(player.stripeUpfrontPaymentId)
-
-            if (payment.status === 'succeeded') {
-              formattedPlayer.paymentInfo.upfrontFeePaid = true
-            }
-          } else {
-            const expectedCost = expectedCosts[(player.secondTeam !== 'none') ? 'dualTeam' : 'singleTeam'][player.sex].upfront
-
-            const paymentIntents = await stripeClient.paymentIntents.list({
-              customer: player.parent.user.stripeCustomerId,
-              created: {
-                gt: 1719792000,
-              },
-            })
-
-            const paymentIntent = paymentIntents.data.find(({ amount }) => amount === expectedCost * 100)
-
-            if (paymentIntent && paymentIntent.status === 'succeeded') {
-              player.stripeUpfrontPaymentId = paymentIntent.id
-              await player.save()
-              formattedPlayer.paymentInfo.upfrontFeePaid = true
-            }
-          }
-
-        } else if (player.membershipFeeOption === 'subscription') {
-          if (player.stripeRegistrationFeeId != null) {
-            const payment: Stripe.PaymentIntent = await stripeClient.paymentIntents.retrieve(player.stripeRegistrationFeeId)
-
-            if (payment.status === 'succeeded') {
-              formattedPlayer.paymentInfo.registrationFeePaid = true
-            }
-          } else {
-            const expectedCost = expectedCosts[(player.secondTeam !== 'none') ? 'dualTeam' : 'singleTeam'][player.sex].subscription.registration
-
-            const paymentIntents = await stripeClient.paymentIntents.list({
-              customer: player.parent.user.stripeCustomerId,
-              created: {
-                gt: 1719792000,
-              },
-            })
-
-            const paymentIntent = paymentIntents.data.find(({ amount }) => amount === expectedCost * 100)
-
-            if (paymentIntent && paymentIntent.status === 'succeeded') {
-              player.stripeRegistrationFeeId = paymentIntent.id
-              await player.save()
-              formattedPlayer.paymentInfo.registrationFeePaid = true
-            }
-          }
-
-          if (player.stripeSubscriptionId) {
-            const subscription: Stripe.Subscription = await stripeClient.subscriptions.retrieve(player.stripeSubscriptionId, {
-              expand: [
-                'latest_invoice.payment_intent',
-                'schedule',
-              ],
-            })
-
-            if (subscription.status === 'active' || subscription.status === 'trialing') {
-              formattedPlayer.paymentInfo.subscriptionUpToDate = true
-            } else {
-              // Handle payment error from latest invoice
-              try {
-                if (
-                  subscription.latest_invoice != null
-                  && typeof subscription.latest_invoice !== 'string'
-                ) {
-                  const invoice = subscription.latest_invoice as any; // Type assertion for newer API
-                  if (invoice.payment_intent && typeof invoice.payment_intent !== 'string') {
-                    const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent;
-                    formattedPlayer.paymentInfo.notes = paymentIntent.last_payment_error?.message || 'Payment failed'
-                  } else {
-                    formattedPlayer.paymentInfo.notes = 'Payment failed'
-                  }
-                } else {
-                  formattedPlayer.paymentInfo.notes = 'No invoice found'
-                }
-              } catch (error) {
-                formattedPlayer.paymentInfo.notes = 'Unable to retrieve payment status'
-              }
-            }
-          } else {
-            formattedPlayer.paymentInfo.notes = 'Subscription not found'
-          }
-        }
-
-        formattedPlayers.push(formattedPlayer)
-      }
-
-      return formattedPlayers
+      return response.ok({
+        status: 'OK',
+        code: 200,
+        data: formattedPlayers,
+      })
     } catch (error) {
       console.log(error)
       return response.internalServerError()

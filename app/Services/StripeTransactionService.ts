@@ -382,4 +382,13 @@ export default class StripeTransactionService {
       console.error(`Failed to update transaction ${stripeId} with player ID:`, error)
     }
   }
+
+  /**
+   * Get a transaction by its Stripe ID
+   */
+  public async getTransactionByStripeId(stripeId: string): Promise<StripeTransaction | null> {
+    return await StripeTransaction.query()
+      .where('stripe_id', stripeId)
+      .first()
+  }
 }

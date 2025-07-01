@@ -45,6 +45,7 @@ Route.group(() => {
     Route.get('/player/:playerId/parent', 'Admin/PlayerController.getParentForPlayer')
     Route.post('/player/:playerId/toggle-wgs-registration', 'Admin/PlayerController.togglePlayerWgsRegistrationStatus')
     Route.get('/subscriptions-schedule', 'Admin/PlayerController.getSubscriptionsPaymentSchedule')
+    Route.get('/gift-aid-declarations', 'Admin/PlayerController.getGiftAidDeclarations')
     Route.get('/verification-photos/:folder/:filename', 'Admin/MediaController.getVerificationPhoto')
     Route.get('/presentation-tickets-schedule', 'Admin/PlayerController.getPresentationTicketsPaymentSchedule')
     Route.post('/subs-status', 'Admin/PlayerController.getSubsStatusForTeam')

@@ -2,7 +2,6 @@ import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Database from '@ioc:Adonis/Lucid/Database'
 import Env from '@ioc:Adonis/Core/Env'
 import Mail from '@ioc:Adonis/Addons/Mail'
-import Drive from '@ioc:Adonis/Core/Drive'
 import { DateTime } from 'luxon'
 
 import Stripe from 'stripe'
@@ -40,34 +39,20 @@ export default class StripeCheckoutCompleteController {
         await this.handleCheckoutSessionCompleted(event.data.object);
         break;
       case 'payment_intent.succeeded':
-        switch (event.data.object?.metadata?.orderType) {
-          case 'summer-camp-2023':
-            await this.handleSummerCamp2023PaymentIntentSucceeded(event.data.object);
-            break;
-          case 'summer-cup-2024':
-            await this.handleSummerCup2024PaymentIntentSucceeded(event.data.object);
-            break;
-          case 'summer-cup-2025':
-            await this.handleSummerCup2025PaymentIntentSucceeded(event.data.object);
-            break;
-          case 'footy-talk-in-2023':
-            await this.handleFootyTalkIn2023PaymentIntentSucceeded(event.data.object);
-            break;
-          case 'footy-talk-in-2024':
-            await this.handleFootyTalkIn2024PaymentIntentSucceeded(event.data.object);
-            break;
-          case 'footy-talk-in-2025':
-            await this.handleFootyTalkIn2025PaymentIntentSucceeded(event.data.object);
-            break;
-          case 'presentation-2023':
-            await this.handlePresentation2023PaymentIntentSucceeded(event.data.object);
-            break;
-          case 'presentation-2024':
-            await this.handlePresentation2024PaymentIntentSucceeded(event.data.object);
-            break;
-          default:
-            console.log(`Unhandled payment intent order type: ${event.data.object.metadata.orderType}`);
-        }
+        await this.handlePaymentIntentSucceeded(event.data.object);
+        break;
+      case 'invoice.payment_succeeded':
+        await this.handleInvoicePaymentSucceeded(event.data.object);
+        break;
+      case 'customer.subscription.updated':
+        await this.handleSubscriptionUpdated(event.data.object);
+        break;
+      case 'customer.subscription.deleted':
+        await this.handleSubscriptionDeleted(event.data.object);
+        break;
+      case 'charge.succeeded':
+        await this.handleChargeSucceeded(event.data.object);
+        break;
       default:
         console.log(`Unhandled event type: ${event.type}`);
     }
@@ -636,8 +621,19 @@ export default class StripeCheckoutCompleteController {
             player.stripeUpfrontPaymentId = session.payment_intent as string;
             await player.save();
 
-            // Store upfront payment in our database
+            // Store upfront payment in our database with merged metadata
             const paymentIntent = await stripeClient.paymentIntents.retrieve(session.payment_intent as string);
+
+            // Merge session metadata (contains gift aid) with payment intent metadata
+            const mergedMetadata = {
+              ...paymentIntent.metadata,
+              ...session.metadata,
+              giftAidDeclarationAccepted: session.metadata?.giftAidDeclarationAccepted || 'false',
+            };
+
+            // Temporarily store merged metadata on payment intent for storePayment method
+            paymentIntent.metadata = mergedMetadata;
+
             await transactionService.storePayment(paymentIntent, 'upfront_payment', player.id, undefined, session.id);
           }
           break;
@@ -647,8 +643,19 @@ export default class StripeCheckoutCompleteController {
           if (session.payment_intent) {
             player.stripeRegistrationFeeId = session.payment_intent as string;
 
-            // Store registration fee payment in our database
+            // Store registration fee payment in our database with merged metadata
             const paymentIntent = await stripeClient.paymentIntents.retrieve(session.payment_intent as string);
+
+            // Merge session metadata (contains gift aid) with payment intent metadata
+            const mergedMetadata = {
+              ...paymentIntent.metadata,
+              ...session.metadata,
+              giftAidDeclarationAccepted: session.metadata?.giftAidDeclarationAccepted || 'false',
+            };
+
+            // Temporarily store merged metadata on payment intent for storePayment method
+            paymentIntent.metadata = mergedMetadata;
+
             await transactionService.storePayment(paymentIntent, 'registration_fee', player.id, undefined, session.id);
           }
 
@@ -696,6 +703,15 @@ export default class StripeCheckoutCompleteController {
               automatic_tax: {
                 enabled: false,
               },
+              // Include gift aid and other important metadata from session
+              metadata: {
+                giftAidDeclarationAccepted: session.metadata?.giftAidDeclarationAccepted || 'false',
+                registrationId: session.metadata?.registrationId || '',
+                playerType: 'subscription',
+                ageGroup: session.metadata?.ageGroup || '',
+                team: session.metadata?.team || '',
+                membershipFeeOption: 'subscription',
+              },
               ...(defaultPaymentMethod && { default_payment_method: defaultPaymentMethod }),
             });
 
@@ -726,6 +742,174 @@ export default class StripeCheckoutCompleteController {
   }
 
   /**
+   * Handle payment_intent.succeeded events
+   * This covers both special events (summer camp, etc.) and player registrations
+   */
+  public async handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+    const transactionService = new StripeTransactionService();
+
+    // Check if this is a special event type (summer camp, tournaments, etc.)
+    const orderType = paymentIntent.metadata?.orderType;
+
+    if (orderType) {
+      // Handle special event types
+      switch (orderType) {
+        case 'summer-camp-2023':
+          await this.handleSummerCamp2023PaymentIntentSucceeded(paymentIntent);
+          break;
+        case 'summer-cup-2024':
+          await this.handleSummerCup2024PaymentIntentSucceeded(paymentIntent);
+          break;
+        case 'summer-cup-2025':
+          await this.handleSummerCup2025PaymentIntentSucceeded(paymentIntent);
+          break;
+        case 'footy-talk-in-2023':
+          await this.handleFootyTalkIn2023PaymentIntentSucceeded(paymentIntent);
+          break;
+        case 'footy-talk-in-2024':
+          await this.handleFootyTalkIn2024PaymentIntentSucceeded(paymentIntent);
+          break;
+        case 'footy-talk-in-2025':
+          await this.handleFootyTalkIn2025PaymentIntentSucceeded(paymentIntent);
+          break;
+        case 'presentation-2023':
+          await this.handlePresentation2023PaymentIntentSucceeded(paymentIntent);
+          break;
+        case 'presentation-2024':
+          await this.handlePresentation2024PaymentIntentSucceeded(paymentIntent);
+          break;
+        default:
+          console.log(`Unhandled payment intent order type: ${orderType}`);
+      }
+    } else {
+      // This might be a player registration payment or other standard payment
+      console.log(`Payment intent succeeded without orderType: ${paymentIntent.id}`);
+
+      // Try to determine payment type from metadata
+      const playerType = paymentIntent.metadata?.playerType;
+      let transactionType: 'registration_fee' | 'upfront_payment' | 'monthly_payment' = 'monthly_payment';
+
+      if (playerType === 'upfront') {
+        transactionType = 'upfront_payment';
+      } else if (playerType === 'subscription') {
+        transactionType = 'registration_fee';
+      }
+
+      // Store this payment in our database
+      try {
+        await transactionService.storePayment(paymentIntent, transactionType);
+        console.log(`Stored payment intent: ${paymentIntent.id} as ${transactionType}`);
+      } catch (error) {
+        console.error(`Failed to store payment intent ${paymentIntent.id}:`, error);
+      }
+    }
+  }
+
+  /**
+   * Handle invoice.payment_succeeded events
+   * This captures monthly subscription payments
+   */
+  public async handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
+    const transactionService = new StripeTransactionService();
+
+    try {
+      // Find the player associated with this subscription
+      const subscriptionId = (invoice as any).subscription;
+
+      if (!subscriptionId) {
+        console.log(`Invoice ${invoice.id} has no associated subscription`);
+        return;
+      }
+
+      const player = await Player.query()
+        .where('stripe_subscription_id', subscriptionId)
+        .first();
+
+      const playerId = player?.id;
+
+      // Store the invoice payment as a monthly payment
+      await transactionService.storePayment(
+        invoice,
+        'monthly_payment',
+        playerId,
+        subscriptionId,
+        invoice.id // Use invoice ID as webhook event ID
+      );
+
+      console.log(`Stored monthly payment: Invoice ${invoice.id} for subscription ${subscriptionId}`);
+    } catch (error) {
+      console.error(`Failed to store invoice payment ${invoice.id}:`, error);
+    }
+  }
+
+  /**
+   * Handle customer.subscription.updated events
+   * This tracks subscription status changes, cancellations, etc.
+   */
+  public async handleSubscriptionUpdated(subscription: Stripe.Subscription) {
+    const transactionService = new StripeTransactionService();
+
+    try {
+      // Find the player associated with this subscription
+      const player = await Player.query()
+        .where('stripe_subscription_id', subscription.id)
+        .first();
+
+      // Update the subscription record in our database
+      await transactionService.storeSubscription(subscription, player?.id);
+
+      console.log(`Updated subscription: ${subscription.id} - Status: ${subscription.status}`);
+    } catch (error) {
+      console.error(`Failed to update subscription ${subscription.id}:`, error);
+    }
+  }
+
+  /**
+   * Handle customer.subscription.deleted events
+   * This tracks when subscriptions are cancelled/deleted
+   */
+  public async handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+    const transactionService = new StripeTransactionService();
+
+    try {
+      // Find the player associated with this subscription
+      const player = await Player.query()
+        .where('stripe_subscription_id', subscription.id)
+        .first();
+
+      // Update the subscription record to reflect deletion
+      await transactionService.storeSubscription(subscription, player?.id);
+
+      console.log(`Subscription deleted: ${subscription.id}`);
+    } catch (error) {
+      console.error(`Failed to handle subscription deletion ${subscription.id}:`, error);
+    }
+  }
+
+  /**
+   * Handle charge.succeeded events
+   * This provides additional coverage for successful payments
+   */
+  public async handleChargeSucceeded(charge: Stripe.Charge) {
+    // Note: Most charges are already handled via payment_intent.succeeded
+    // This handler provides backup coverage and handles direct charges
+
+    const transactionService = new StripeTransactionService();
+
+    try {
+      // Only process if this charge doesn't have a payment intent (direct charge)
+      if (!charge.payment_intent) {
+        await transactionService.storePayment(charge, 'monthly_payment');
+        console.log(`Stored direct charge: ${charge.id}`);
+      } else {
+        console.log(`Charge ${charge.id} already handled via payment intent ${charge.payment_intent}`);
+      }
+    } catch (error) {
+      console.error(`Failed to store charge ${charge.id}:`, error);
+    }
+  }
+
+  /**
    * Helper method to safely extract billing details from PaymentIntent
    * In newer Stripe API versions, charges may not be expanded by default
    */
@@ -751,6 +935,7 @@ export default class StripeCheckoutCompleteController {
    * @returns The final filename (without temp_ prefix) or the original temp filename if moving fails
    */
   private async moveVerificationFile(tempFileName: string, targetDirectory: string): Promise<string> {
+    const Drive = (await import('@ioc:Adonis/Core/Drive')).default;
     const finalFileName = tempFileName.replace('temp_', '');
 
     try {

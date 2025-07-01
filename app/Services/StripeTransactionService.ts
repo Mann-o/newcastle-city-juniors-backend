@@ -319,4 +319,28 @@ export default class StripeTransactionService {
       }))
       .sort((a, b) => parseInt(a.ageGroup) - parseInt(b.ageGroup))
   }
+
+  /**
+   * Get gift aid declarations for admin reporting
+   */
+  public async getGiftAidDeclarations() {
+    const transactions = await StripeTransaction.query()
+      .preload('player', (query) => {
+        query.preload('user')
+      })
+      .whereNotNull('player_id')
+      .orderBy('created_at', 'desc')
+
+    return transactions
+      .filter(transaction => transaction.metadata?.giftAidDeclarationAccepted !== undefined)
+      .map(transaction => ({
+        playerId: transaction.playerId,
+        playerName: transaction.player ? `${transaction.player.firstName} ${transaction.player.lastName}` : 'Unknown',
+        email: transaction.player?.user?.email || 'Unknown',
+        giftAidOptedIn: transaction.metadata?.giftAidDeclarationAccepted === 'true',
+        transactionType: transaction.type,
+        transactionDate: transaction.stripeCreatedAt?.toISO(),
+        amount: transaction.amountCents ? (transaction.amountCents / 100) : null,
+      }))
+  }
 }

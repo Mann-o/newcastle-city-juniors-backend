@@ -407,4 +407,25 @@ export default class PlayerController {
       })
     }
   }
+
+  public async getGiftAidDeclarations({ auth, response }: HttpContextContract) {
+    const user = auth.use('api').user!
+
+    const requiredPermissions = ['staff', 'view-players'];
+    const userPermissions = (await user!.related('permissions').query()).map(({ name }) => name)
+    const hasRequiredPermissions = requiredPermissions.every(requiredPermission => userPermissions.includes(requiredPermission));
+
+    if (!hasRequiredPermissions) {
+      return response.unauthorized()
+    }
+
+    const transactionService = new StripeTransactionService();
+    const giftAidData = await transactionService.getGiftAidDeclarations();
+
+    return response.ok({
+      status: 'OK',
+      code: 200,
+      data: giftAidData,
+    })
+  }
 }

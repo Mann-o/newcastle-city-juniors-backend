@@ -190,6 +190,10 @@ export default class PlayerController {
             metadata: {
               registrationId,
               playerType: 'coach',
+              giftAidDeclarationAccepted: request.input('giftAidDeclarationAccepted').toString(),
+              ageGroup: request.input('ageGroup'),
+              team: request.input('team'),
+              membershipFeeOption: 'subscription',
             },
           },
           metadata: {

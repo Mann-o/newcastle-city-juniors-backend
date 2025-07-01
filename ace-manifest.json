@@ -36,6 +36,54 @@
       "aliases": [],
       "flags": []
     },
+    "fix:metadata": {
+      "settings": {
+        "loadApp": true,
+        "stayAlive": false
+      },
+      "commandPath": "./commands/FixMetadata",
+      "commandName": "fix:metadata",
+      "description": "Fix corrupted metadata in stripe_transactions table",
+      "args": [],
+      "aliases": [],
+      "flags": []
+    },
+    "fix:transaction-player-links": {
+      "settings": {
+        "loadApp": true,
+        "stayAlive": false
+      },
+      "commandPath": "./commands/FixTransactionPlayerLinks",
+      "commandName": "fix:transaction-player-links",
+      "description": "Fix existing transactions missing player ID links and players missing Stripe ID fields",
+      "args": [],
+      "aliases": [],
+      "flags": []
+    },
+    "fix:undefined-filenames": {
+      "settings": {
+        "loadApp": true,
+        "stayAlive": false
+      },
+      "commandPath": "./commands/FixUndefinedFilenames",
+      "commandName": "fix:undefined-filenames",
+      "description": "Fix player records with undefined verification photo filenames",
+      "args": [],
+      "aliases": [],
+      "flags": []
+    },
+    "sync:filenames": {
+      "settings": {
+        "loadApp": true,
+        "stayAlive": false
+      },
+      "commandPath": "./commands/SyncFilenames",
+      "commandName": "sync:filenames",
+      "description": "Sync database filenames with actual storage files",
+      "args": [],
+      "aliases": [],
+      "flags": []
+    },
     "sync:stripe": {
       "settings": {
         "loadApp": true,

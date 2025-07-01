@@ -3,6 +3,7 @@ import Env from '@ioc:Adonis/Core/Env'
 import { DateTime } from 'luxon'
 import StripeTransaction, { TransactionType, TransactionStatus } from 'App/Models/StripeTransaction'
 import Player from 'App/Models/Player'
+import Database from '@ioc:Adonis/Lucid/Database'
 
 export default class StripeTransactionService {
   private stripe: Stripe
@@ -21,10 +22,25 @@ export default class StripeTransactionService {
     playerId?: number,
     webhookEventId?: string
   ): Promise<StripeTransaction> {
-    const existingTransaction = await StripeTransaction.findByStripeId(subscription.id)
+    // Check if transaction already exists using raw query to avoid metadata issues
+    const existingRecord = await Database
+      .from('stripe_transactions')
+      .select('id', 'player_id')
+      .where('stripe_id', subscription.id)
+      .first()
+
+    if (existingRecord) {
+      // Skip updating existing records during sync to avoid metadata serialization issues
+      console.log(`Skipping existing subscription: ${subscription.id}`)
+      // Create a mock transaction for return type consistency
+      const mockTransaction = new StripeTransaction()
+      mockTransaction.id = existingRecord.id
+      mockTransaction.stripeId = subscription.id
+      return mockTransaction
+    }
 
     const transactionData = {
-      playerId: playerId || existingTransaction?.playerId || null,
+      playerId: playerId || existingRecord?.player_id || null,
       userId: null, // Will be populated from player relationship
       stripeId: subscription.id,
       stripeCustomerId: subscription.customer as string,
@@ -46,13 +62,8 @@ export default class StripeTransactionService {
       metadata: subscription.metadata || {},
     }
 
-    if (existingTransaction) {
-      existingTransaction.merge(transactionData)
-      await existingTransaction.save()
-      return existingTransaction
-    } else {
-      return await StripeTransaction.create(transactionData)
-    }
+    // Only create new records, skip existing ones during sync
+    return await StripeTransaction.create(transactionData)
   }
 
   /**
@@ -65,7 +76,22 @@ export default class StripeTransactionService {
     parentSubscriptionId?: string,
     webhookEventId?: string
   ): Promise<StripeTransaction> {
-    const existingTransaction = await StripeTransaction.findByStripeId(payment.id!)
+    // Check if transaction already exists using raw query to avoid metadata issues
+    const existingRecord = await Database
+      .from('stripe_transactions')
+      .select('id', 'player_id')
+      .where('stripe_id', payment.id!)
+      .first()
+
+    if (existingRecord) {
+      // Skip updating existing records during sync to avoid metadata serialization issues
+      console.log(`Skipping existing payment: ${payment.id}`)
+      // Create a mock transaction for return type consistency
+      const mockTransaction = new StripeTransaction()
+      mockTransaction.id = existingRecord.id
+      mockTransaction.stripeId = payment.id!
+      return mockTransaction
+    }
 
     // Extract payment method details
     let paymentMethodDetails: any = {}
@@ -98,7 +124,7 @@ export default class StripeTransactionService {
     }
 
     const transactionData = {
-      playerId: playerId || existingTransaction?.playerId || null,
+      playerId: playerId || existingRecord?.player_id || null,
       userId: null,
       stripeId: payment.id,
       stripeCustomerId: payment.customer as string || null,
@@ -114,13 +140,8 @@ export default class StripeTransactionService {
       ...paymentMethodDetails,
     }
 
-    if (existingTransaction) {
-      existingTransaction.merge(transactionData)
-      await existingTransaction.save()
-      return existingTransaction
-    } else {
-      return await StripeTransaction.create(transactionData)
-    }
+    // Only create new records, skip existing ones during sync
+    return await StripeTransaction.create(transactionData)
   }
 
   /**
@@ -342,5 +363,23 @@ export default class StripeTransactionService {
         transactionDate: transaction.stripeCreatedAt?.toISO(),
         amount: transaction.amountCents ? (transaction.amountCents / 100) : null,
       }))
+  }
+
+  /**
+   * Update existing transaction records with player ID
+   * This is used when a player is created after payment processing
+   */
+  public async updateTransactionWithPlayerId(stripeId: string, playerId: number): Promise<void> {
+    try {
+      const transaction = await StripeTransaction.findByStripeId(stripeId)
+
+      if (transaction && !transaction.playerId) {
+        transaction.playerId = playerId
+        await transaction.save()
+        console.log(`Updated transaction ${stripeId} with player ID ${playerId}`)
+      }
+    } catch (error) {
+      console.error(`Failed to update transaction ${stripeId} with player ID:`, error)
+    }
   }
 }

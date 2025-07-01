@@ -83,5 +83,19 @@ To ensure all payment and subscription data is properly captured in the local da
 - **Monitor webhook delivery** in Stripe Dashboard for failed deliveries
 - **Backup sync command** available: `node ace sync:stripe` for historical data
 - **Idempotency** built-in via webhook event IDs to prevent duplicate processing
+- **Race condition fix**: Player registration payments are handled by `checkout.session.completed` to ensure proper player linking
 
-The webhook system now provides comprehensive coverage of all Stripe events needed for complete payment and subscription tracking.
+### **🔧 Troubleshooting Commands**
+
+- **Fix orphaned transactions**: `node ace fix:transaction-player-links` - Links existing transactions missing player IDs
+- **Sync historical data**: `node ace sync:stripe` - Import old Stripe data into local database
+- **Check webhook status**: Monitor Stripe Dashboard → Developers → Webhooks for delivery status
+
+### **📋 Race Condition Solution**
+
+The webhook handlers have been designed to prevent race conditions between `payment_intent.succeeded` and `checkout.session.completed`:
+
+1. **Player registration payments** (`registrationId` present) are skipped in `payment_intent.succeeded`
+2. **Payment storage happens** in `checkout.session.completed` after player creation
+3. **Existing transactions are updated** with player IDs after player creation
+4. **Fix command available** to repair any orphaned transaction records

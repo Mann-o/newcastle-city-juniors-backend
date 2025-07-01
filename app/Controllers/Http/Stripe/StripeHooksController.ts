@@ -736,6 +736,18 @@ export default class StripeCheckoutCompleteController {
       }
 
       console.log(`Successfully processed checkout for player ${player.id} (${playerType})`);
+
+      // Update any existing transaction records with the player ID
+      // This fixes the race condition where payment_intent.succeeded fires before player creation
+      if (session.payment_intent) {
+        await transactionService.updateTransactionWithPlayerId(session.payment_intent as string, player.id);
+      }
+
+      // Also update subscription transaction if it exists
+      if (session.subscription) {
+        await transactionService.updateTransactionWithPlayerId(session.subscription as string, player.id);
+      }
+
     } catch (error) {
       console.error('Error processing checkout session completed:', error);
     }
@@ -782,11 +794,19 @@ export default class StripeCheckoutCompleteController {
           console.log(`Unhandled payment intent order type: ${orderType}`);
       }
     } else {
-      // This might be a player registration payment or other standard payment
+      // Check if this is a player registration payment that will be handled by checkout.session.completed
+      const registrationId = paymentIntent.metadata?.registrationId;
+      const playerType = paymentIntent.metadata?.playerType;
+
+      if (registrationId && (playerType === 'upfront' || playerType === 'subscription' || playerType === 'coach')) {
+        console.log(`Skipping player registration payment intent ${paymentIntent.id} - will be handled by checkout.session.completed`);
+        return;
+      }
+
+      // This might be a standalone payment or other standard payment
       console.log(`Payment intent succeeded without orderType: ${paymentIntent.id}`);
 
       // Try to determine payment type from metadata
-      const playerType = paymentIntent.metadata?.playerType;
       let transactionType: 'registration_fee' | 'upfront_payment' | 'monthly_payment' = 'monthly_payment';
 
       if (playerType === 'upfront') {

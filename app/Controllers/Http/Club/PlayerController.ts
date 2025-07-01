@@ -58,8 +58,12 @@ export default class PlayerController {
       const ageVerificationPhoto = request.file('ageVerificationPhoto')!
 
       // Store files temporarily with unique prefixes for webhook processing
-      const tempIdentityFileName = `temp_${Date.now()}_${identityVerificationPhoto.fileName}`
-      const tempAgeFileName = `temp_${Date.now()}_${ageVerificationPhoto.fileName}`
+      // Use clientName (original filename) or generate a name with proper extension
+      const identityFileName = identityVerificationPhoto.clientName || `identity.${identityVerificationPhoto.extname}`
+      const ageFileName = ageVerificationPhoto.clientName || `age.${ageVerificationPhoto.extname}`
+
+      const tempIdentityFileName = `temp_${Date.now()}_${identityFileName}`
+      const tempAgeFileName = `temp_${Date.now()}_${ageFileName}`
 
       await identityVerificationPhoto.moveToDisk('temp-verification-photos', { name: tempIdentityFileName }, 'spaces')
       await ageVerificationPhoto.moveToDisk('temp-verification-photos', { name: tempAgeFileName }, 'spaces')
@@ -459,13 +463,15 @@ export default class PlayerController {
     const ageVerificationPhoto = request.file('ageVerificationPhoto')
 
     if (identityVerificationPhoto) {
-      await identityVerificationPhoto.moveToDisk('identity-verification-photos', {}, 'spaces')
-      player.identityVerificationPhoto = identityVerificationPhoto.fileName!
+      const identityFileName = identityVerificationPhoto.clientName || `identity_${Date.now()}.${identityVerificationPhoto.extname}`
+      await identityVerificationPhoto.moveToDisk('identity-verification-photos', { name: identityFileName }, 'spaces')
+      player.identityVerificationPhoto = identityFileName
     }
 
     if (ageVerificationPhoto) {
-      await ageVerificationPhoto.moveToDisk('age-verification-photos', {}, 'spaces')
-      player.ageVerificationPhoto = ageVerificationPhoto.fileName!
+      const ageFileName = ageVerificationPhoto.clientName || `age_${Date.now()}.${ageVerificationPhoto.extname}`
+      await ageVerificationPhoto.moveToDisk('age-verification-photos', { name: ageFileName }, 'spaces')
+      player.ageVerificationPhoto = ageFileName
     }
 
     await player.save()

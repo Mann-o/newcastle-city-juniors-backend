@@ -65,6 +65,7 @@ Route.group(() => {
       Route.post('/footy-talk-in-2023', 'Stripe/StripeController.createFootyTalkIn2023PaymentIntent')
       Route.post('/footy-talk-in-2024', 'Stripe/StripeController.createFootyTalkIn2024PaymentIntent')
       Route.post('/footy-talk-in-2025', 'Stripe/StripeController.createFootyTalkIn2025PaymentIntent')
+      Route.post('/footy-talk-in-2025-keegan', 'Stripe/StripeController.createFootyTalkIn2025KeeganPaymentIntent')
       Route.post('/presentation-2023', 'Stripe/StripeController.createPresentation2023PaymentIntent')
       Route.post('/presentation-2024', 'Stripe/StripeController.createPresentation2024PaymentIntent')
     }).prefix('/payment-intents')

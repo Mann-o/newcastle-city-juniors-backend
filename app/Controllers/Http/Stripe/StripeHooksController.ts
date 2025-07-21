@@ -346,6 +346,48 @@ export default class StripeCheckoutCompleteController {
     });
   }
 
+  public async handleFootyTalkIn2025KeeganPaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+      apiVersion: Env.get('STRIPE_API_VERSION'),
+    });
+
+    const postcode = await this.getBillingDetailsFromPaymentIntent(paymentIntent, stripeClient);
+
+    await Database
+      .insertQuery()
+      .table('footy_talk_in_signups_2025_keegan')
+      .insert({
+        full_name: paymentIntent.metadata.fullName,
+        house_name_and_number: paymentIntent.metadata.houseNameAndNumber,
+        city: paymentIntent.metadata.city,
+        postcode: postcode,
+        email_address: paymentIntent.metadata.emailAddress,
+        contact_number: paymentIntent.metadata.contactNumber,
+        ticket_option: paymentIntent.metadata.ticketOption,
+        amount_paid: paymentIntent.amount_received,
+      });
+
+    await Mail.send(message => {
+      message
+        .from('info@newcastlecityjuniors.co.uk')
+        .to('info@newcastlecityjuniors.co.uk', 'Newcastle City Juniors')
+        .subject('New Footy Talk-In Signup')
+        .html(`
+          <h1>New Footy Talk-In 2025 (Keegan) Signup</h1>
+          <p>The following footy talk-in registration has been received and paid:</p>
+          <ul>
+            <li><strong>Email Address:</strong> ${paymentIntent.metadata.emailAddress}</li>
+            <li><strong>House Name/No:</strong> ${paymentIntent.metadata.houseNameAndNumber}</li>
+            <li><strong>City:</strong> ${paymentIntent.metadata.city}</li>
+            <li><strong>Postcode:</strong> ${postcode || 'Not provided'}</li>
+            <li><strong>Contact Number:</strong> ${paymentIntent.metadata.contactNumber}</li>
+            <li><strong>Ticket Option:</strong> ${paymentIntent.metadata.ticketOption}</li>
+            <li><strong>Amount Paid:</strong> £${(paymentIntent.amount_received / 100).toFixed(2)}</li>
+          </ul>
+        `);
+    });
+  }
+
   public async handlePresentation2023PaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     await Database
       .insertQuery()
@@ -783,6 +825,9 @@ export default class StripeCheckoutCompleteController {
           break;
         case 'footy-talk-in-2025':
           await this.handleFootyTalkIn2025PaymentIntentSucceeded(paymentIntent);
+          break;
+        case 'footy-talk-in-2025-keegan':
+          await this.handleFootyTalkIn2025KeeganPaymentIntentSucceeded(paymentIntent);
           break;
         case 'presentation-2023':
           await this.handlePresentation2023PaymentIntentSucceeded(paymentIntent);

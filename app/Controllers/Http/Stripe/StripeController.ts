@@ -577,7 +577,7 @@ export default class StripeController {
           emailAddress: request.input('form.emailAddress'),
           contactNumber: request.input('form.contactNumber'),
           ticketOption: request.input('form.ticketOption'),
-          orderType: 'footy-talk-in-2025',
+          orderType: 'footy-talk-in-2025-keegan',
         },
       })
 

@@ -70,6 +70,8 @@ Route.group(() => {
       Route.post('/presentation-2024', 'Stripe/StripeController.createPresentation2024PaymentIntent')
     }).prefix('/payment-intents')
 
+    Route.get('/footy-talk-keegan-availability', 'Stripe/StripeController.checkFootyTalkKeeganAvailability')
+
     Route.post('/handle-webhook', 'Stripe/StripeHooksController.handleStripeWebhook')
 
     Route.get('/shoppable-products', 'Stripe/StripeController.getShoppableProducts')

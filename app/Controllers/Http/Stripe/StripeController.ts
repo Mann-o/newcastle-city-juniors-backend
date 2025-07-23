@@ -562,6 +562,19 @@ export default class StripeController {
       apiVersion: Env.get('STRIPE_API_VERSION'),
     })
 
+    // Check ticket availability before creating payment intent
+    const ticketOption = request.input('form.ticketOption')
+    const availabilityCheck = await this.checkFootyTalkKeeganTicketAvailability(ticketOption)
+
+    if (!availabilityCheck.available) {
+      return response.badRequest({
+        code: 400,
+        status: 'Ticket Limit Reached',
+        message: availabilityCheck.message,
+        remaining: availabilityCheck.remaining
+      })
+    }
+
     let paymentIntent: Stripe.PaymentIntent
     let isUpdate: boolean = false
 
@@ -741,6 +754,83 @@ export default class StripeController {
       paymentIntent,
       isUpdate,
     })
+  }
+
+  /**
+   * Check current ticket availability for Footy Talk Keegan event
+   * GET endpoint to check availability without creating payment intent
+   */
+  public async checkFootyTalkKeeganAvailability({ response }: HttpContextContract) {
+    const tableAvailability = await this.checkFootyTalkKeeganTicketAvailability('table')
+    const individualAvailability = await this.checkFootyTalkKeeganTicketAvailability('individual')
+
+    return response.ok({
+      status: 'OK',
+      code: 200,
+      availability: {
+        table: tableAvailability,
+        individual: individualAvailability
+      }
+    })
+  }
+
+  /**
+   * Check ticket availability for Footy Talk Keegan event
+   * @param ticketOption - The ticket type being requested ('table' or 'individual')
+   * @returns Object with availability status and remaining tickets
+   */
+  private async checkFootyTalkKeeganTicketAvailability(ticketOption: string) {
+    const Database = (await import('@ioc:Adonis/Lucid/Database')).default
+
+    // Define ticket limits
+    const LIMITS = {
+      'table': 1,
+      'individual': 1,
+    }
+
+    // Validate ticket type
+    if (!LIMITS[ticketOption]) {
+      return {
+        available: false,
+        message: `Invalid ticket type: ${ticketOption}`,
+        remaining: 0
+      }
+    }
+
+    try {
+      // Count current tickets of this type with FOR UPDATE to prevent race conditions
+      const result = await Database
+        .from('footy_talk_in_signups_2025_keegan')
+        .where('ticket_option', ticketOption)
+        .count('* as total')
+
+      const currentCount = parseInt(result[0].total)
+      const limit = LIMITS[ticketOption]
+      const remaining = limit - currentCount
+
+      if (remaining <= 0) {
+        return {
+          available: false,
+          message: `Sorry, all ${ticketOption} tickets have been sold out. ${currentCount} of ${limit} tickets have been purchased.`,
+          remaining: 0
+        }
+      }
+
+      return {
+        available: true,
+        message: `${remaining} ${ticketOption} ticket${remaining === 1 ? '' : 's'} remaining`,
+        remaining: remaining
+      }
+
+    } catch (error) {
+      console.error('Error checking ticket availability:', error)
+      // In case of database error, allow the purchase to proceed to avoid blocking sales
+      return {
+        available: true,
+        message: 'Unable to verify ticket availability, proceeding with purchase',
+        remaining: -1
+      }
+    }
   }
 }
 

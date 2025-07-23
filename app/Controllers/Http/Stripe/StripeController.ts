@@ -784,8 +784,8 @@ export default class StripeController {
 
     // Define ticket limits
     const LIMITS = {
-      'table': 1,
-      'individual': 1,
+      'table': 12,
+      'individual': 20,
     }
 
     // Validate ticket type

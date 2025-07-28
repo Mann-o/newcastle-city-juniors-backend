@@ -178,6 +178,7 @@ export default class PlayerController {
           'parents.first_name as parent_first_name',
           'parents.last_name as parent_last_name',
           'parents.email as parent_email',
+          'users.id as user_id',
           'permissions.name as permission_name',
           'stripe_transactions.type as transaction_type',
           'stripe_transactions.status as transaction_status',
@@ -281,7 +282,8 @@ export default class PlayerController {
             firstName: player.parent_first_name,
             lastName: player.parent_last_name,
             email: player.parent_email,
-          }
+            userId: player.user_id,
+          },
         }
       })
 

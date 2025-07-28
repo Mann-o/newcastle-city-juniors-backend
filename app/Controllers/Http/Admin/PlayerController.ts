@@ -179,6 +179,7 @@ export default class PlayerController {
           'parents.last_name as parent_last_name',
           'parents.email as parent_email',
           'users.id as user_id',
+          'users.stripe_customer_id as stripe_customer_id',
           'permissions.name as permission_name',
           'stripe_transactions.type as transaction_type',
           'stripe_transactions.status as transaction_status',
@@ -277,6 +278,7 @@ export default class PlayerController {
           stripeUpfrontPaymentId: player.stripe_upfront_payment_id,
           stripeRegistrationFeeId: player.stripe_registration_fee_id,
           stripeSubscriptionId: player.stripe_subscription_id,
+          stripeCustomerId: player.stripe_customer_id,
           paymentInfo,
           parent: {
             firstName: player.parent_first_name,

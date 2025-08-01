@@ -265,6 +265,7 @@ export default class PlayerController {
 
         return {
           id: player.id,
+          createdAt: player.created_at,
           firstName: player.first_name,
           middleNames: player.middle_names,
           lastName: player.last_name,

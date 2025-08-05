@@ -24,6 +24,30 @@
       "aliases": [],
       "flags": []
     },
+    "backfill:stripe": {
+      "settings": {
+        "loadApp": true,
+        "stayAlive": false
+      },
+      "commandPath": "./commands/BackfillRecentStripeData",
+      "commandName": "backfill:stripe",
+      "description": "Backfill missed Stripe transactions and player data from June 30th 2025 onwards",
+      "args": [],
+      "aliases": [],
+      "flags": []
+    },
+    "check:missing-files": {
+      "settings": {
+        "loadApp": true,
+        "stayAlive": false
+      },
+      "commandPath": "./commands/CheckMissingFiles",
+      "commandName": "check:missing-files",
+      "description": "Check for missing verification photos in DigitalOcean Spaces",
+      "args": [],
+      "aliases": [],
+      "flags": []
+    },
     "db:refresh": {
       "settings": {
         "loadApp": true,
@@ -32,6 +56,27 @@
       "commandPath": "./commands/DbRefresh",
       "commandName": "db:refresh",
       "description": "Runs a full migration rollback, re-runs migrations and runs all seeders",
+      "args": [],
+      "aliases": [],
+      "flags": []
+    },
+    "diagnose:temp-files": {
+      "settings": {
+        "loadApp": true,
+        "stayAlive": false
+      },
+      "commandPath": "./commands/DiagnoseTempFiles",
+      "commandName": "diagnose:temp-files",
+      "description": "Diagnose temp file issues and provide solutions",
+      "args": [],
+      "aliases": [],
+      "flags": []
+    },
+    "diagnose:webhooks": {
+      "settings": {},
+      "commandPath": "./commands/DiagnoseWebhooks",
+      "commandName": "diagnose:webhooks",
+      "description": "Diagnose webhook processing issues",
       "args": [],
       "aliases": [],
       "flags": []
@@ -71,6 +116,25 @@
       "args": [],
       "aliases": [],
       "flags": []
+    },
+    "repair:temp-files": {
+      "settings": {
+        "loadApp": true,
+        "stayAlive": false
+      },
+      "commandPath": "./commands/RepairTempFiles",
+      "commandName": "repair:temp-files",
+      "description": "Repair temp files by moving them to correct locations and updating database",
+      "args": [],
+      "aliases": [],
+      "flags": [
+        {
+          "name": "dry-run",
+          "propertyName": "dryRun",
+          "type": "boolean",
+          "description": "Show what would be changed without making actual changes"
+        }
+      ]
     },
     "sync:filenames": {
       "settings": {

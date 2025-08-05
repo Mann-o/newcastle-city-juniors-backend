@@ -8,6 +8,7 @@ import { parseISO, getUnixTime, addMonths, getMonth, getYear, format } from 'dat
 import Player from 'App/Models/Player'
 import User from 'App/Models/User'
 import CreatePlayerValidator from 'App/Validators/CreatePlayerValidator'
+import { FileNamingService } from 'App/Services/FileNamingService'
 
 export default class PlayerController {
   /**
@@ -57,13 +58,27 @@ export default class PlayerController {
       const identityVerificationPhoto = request.file('identityVerificationPhoto')!
       const ageVerificationPhoto = request.file('ageVerificationPhoto')!
 
-      // Store files temporarily with unique prefixes for webhook processing
-      // Use clientName (original filename) or generate a name with proper extension
-      const identityFileName = identityVerificationPhoto.clientName || `identity.${identityVerificationPhoto.extname}`
-      const ageFileName = ageVerificationPhoto.clientName || `age.${ageVerificationPhoto.extname}`
-
-      const tempIdentityFileName = `temp_${Date.now()}_${identityFileName}`
-      const tempAgeFileName = `temp_${Date.now()}_${ageFileName}`
+      // Generate unique, descriptive filenames using the new naming convention
+      // Format: PLAYER-NAME_VERIFICATION-TYPE_REGISTRATION-DATE-AND-TIME.extension
+      const identityExtension = identityVerificationPhoto.extname || 'jpg'
+      const ageExtension = ageVerificationPhoto.extname || 'jpg'
+      
+      const firstName = request.input('firstName')
+      const lastName = request.input('lastName')
+      
+      const tempIdentityFileName = FileNamingService.generateTempVerificationFilename(
+        firstName, 
+        lastName, 
+        'IDENTITY', 
+        identityExtension
+      )
+      
+      const tempAgeFileName = FileNamingService.generateTempVerificationFilename(
+        firstName, 
+        lastName, 
+        'AGE', 
+        ageExtension
+      )
 
       await identityVerificationPhoto.moveToDisk('temp-verification-photos', { name: tempIdentityFileName }, 'spaces')
       await ageVerificationPhoto.moveToDisk('temp-verification-photos', { name: tempAgeFileName }, 'spaces')
@@ -462,13 +477,25 @@ export default class PlayerController {
     const ageVerificationPhoto = request.file('ageVerificationPhoto')
 
     if (identityVerificationPhoto) {
-      const identityFileName = identityVerificationPhoto.clientName || `identity_${Date.now()}.${identityVerificationPhoto.extname}`
+      const identityExtension = identityVerificationPhoto.extname || 'jpg'
+      const identityFileName = FileNamingService.generateVerificationFilename(
+        player.firstName,
+        player.lastName,
+        'IDENTITY',
+        identityExtension
+      )
       await identityVerificationPhoto.moveToDisk('identity-verification-photos', { name: identityFileName }, 'spaces')
       player.identityVerificationPhoto = identityFileName
     }
 
     if (ageVerificationPhoto) {
-      const ageFileName = ageVerificationPhoto.clientName || `age_${Date.now()}.${ageVerificationPhoto.extname}`
+      const ageExtension = ageVerificationPhoto.extname || 'jpg'
+      const ageFileName = FileNamingService.generateVerificationFilename(
+        player.firstName,
+        player.lastName,
+        'AGE',
+        ageExtension
+      )
       await ageVerificationPhoto.moveToDisk('age-verification-photos', { name: ageFileName }, 'spaces')
       player.ageVerificationPhoto = ageFileName
     }

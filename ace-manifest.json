@@ -160,6 +160,18 @@
       "aliases": [],
       "flags": []
     },
+    "test:file-naming": {
+      "settings": {
+        "loadApp": true,
+        "stayAlive": false
+      },
+      "commandPath": "./commands/TestFileNaming",
+      "commandName": "test:file-naming",
+      "description": "Test the new file naming system",
+      "args": [],
+      "aliases": [],
+      "flags": []
+    },
     "dump:rcfile": {
       "settings": {},
       "commandPath": "@adonisjs/core/build/commands/DumpRc",

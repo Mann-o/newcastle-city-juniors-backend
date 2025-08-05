@@ -8,6 +8,7 @@ import Stripe from 'stripe'
 import Player from 'App/Models/Player'
 import User from 'App/Models/User'
 import StripeTransactionService from 'App/Services/StripeTransactionService'
+import { FileNamingService } from 'App/Services/FileNamingService'
 
 export default class StripeCheckoutCompleteController {
   public async handleStripeWebhook({ request, response }: HttpContextContract) {
@@ -1001,7 +1002,7 @@ export default class StripeCheckoutCompleteController {
    */
   private async moveVerificationFile(tempFileName: string, targetDirectory: string): Promise<string> {
     const Drive = (await import('@ioc:Adonis/Core/Drive')).default;
-    const finalFileName = tempFileName.replace('temp_', '');
+    const finalFileName = FileNamingService.getFinalFilenameFromTemp(tempFileName);
 
     try {
       const spacesDriver = Drive.use('spaces');

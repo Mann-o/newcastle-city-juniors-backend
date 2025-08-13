@@ -68,9 +68,11 @@ Route.group(() => {
       Route.post('/footy-talk-in-2025-keegan', 'Stripe/StripeController.createFootyTalkIn2025KeeganPaymentIntent')
       Route.post('/presentation-2023', 'Stripe/StripeController.createPresentation2023PaymentIntent')
       Route.post('/presentation-2024', 'Stripe/StripeController.createPresentation2024PaymentIntent')
+      Route.post('/halloween-2025', 'Stripe/StripeController.createHalloween2025PaymentIntent')
     }).prefix('/payment-intents')
 
     Route.get('/footy-talk-keegan-availability', 'Stripe/StripeController.checkFootyTalkKeeganAvailability')
+    Route.get('/halloween-2025-availability/:quantity', 'Stripe/StripeController.checkHalloween2025AvailabilityEndpoint')
 
     Route.post('/handle-webhook', 'Stripe/StripeHooksController.handleStripeWebhook')
 

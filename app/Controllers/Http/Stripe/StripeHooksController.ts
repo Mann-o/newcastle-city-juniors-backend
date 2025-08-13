@@ -510,6 +510,51 @@ export default class StripeCheckoutCompleteController {
     });
   }
 
+  public async handleHalloween2025PaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+    await Database
+      .insertQuery()
+      .table('halloween_2025')
+      .insert({
+        no_of_tickets: paymentIntent.metadata.ticketsRequired,
+        full_name: paymentIntent.metadata.fullName,
+        email_address: paymentIntent.metadata.emailAddress,
+        contact_number: paymentIntent.metadata.contactNumber,
+        amount_paid: (paymentIntent.amount_received / 100),
+        gift_aid_opted_in: paymentIntent.metadata.giftAidOptedIn === 'true',
+      });
+
+    await Mail.send(message => {
+      message
+        .from('info@newcastlecityjuniors.co.uk')
+        .to(paymentIntent.metadata.emailAddress)
+        .subject('Your tickets to the NCJ Halloween Party 2025')
+        .htmlView('emails/halloween-2025', {
+          fullName: paymentIntent.metadata.fullName,
+          contactNumber: paymentIntent.metadata.contactNumber,
+          noOfTickets: paymentIntent.metadata.ticketsRequired,
+          amountPaid: (paymentIntent.amount_received / 100).toFixed(2),
+        });
+    });
+
+    await Mail.send(message => {
+      message
+        .from('info@newcastlecityjuniors.co.uk')
+        .to('info@newcastlecityjuniors.co.uk', 'Newcastle City Juniors')
+        .subject('New ticket(s) ordered for Halloween Party 2025')
+        .html(`
+          <h1>New Halloween Party 2025 Ticket Order</h1>
+          <p>The following ticket(s) have been purchased:</p>
+          <ul>
+            <li><strong>Full Name:</strong> ${paymentIntent.metadata.fullName}</li>
+            <li><strong>Email Address:</strong> ${paymentIntent.metadata.emailAddress}</li>
+            <li><strong>Contact Number:</strong> ${paymentIntent.metadata.contactNumber}</li>
+            <li><strong>No. of Tickets:</strong> ${paymentIntent.metadata.ticketsRequired}</li>
+            <li><strong>Amount Paid:</strong> £${(paymentIntent.amount_received / 100).toFixed(2)}</li>
+          </ul>
+        `);
+    });
+  }
+
   public async handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
     try {
       const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
@@ -835,6 +880,9 @@ export default class StripeCheckoutCompleteController {
           break;
         case 'presentation-2024':
           await this.handlePresentation2024PaymentIntentSucceeded(paymentIntent);
+          break;
+        case 'halloween-2025':
+          await this.handleHalloween2025PaymentIntentSucceeded(paymentIntent);
           break;
         default:
           console.log(`Unhandled payment intent order type: ${orderType}`);

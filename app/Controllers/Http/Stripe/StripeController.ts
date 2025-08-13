@@ -756,6 +756,64 @@ export default class StripeController {
     })
   }
 
+  public async createHalloween2025PaymentIntent({ request, response }: HttpContextContract) {
+    const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+      apiVersion: Env.get('STRIPE_API_VERSION'),
+    })
+
+    // Check ticket availability before creating payment intent
+    const availabilityCheck = await this.checkHalloween2025Availability(request.input('form.ticketsRequired'))
+
+    if (!availabilityCheck.available) {
+      return response.badRequest({
+        code: 400,
+        status: 'Order quantity exceeds available tickets',
+        message: availabilityCheck.message,
+        remaining: availabilityCheck.remaining,
+      })
+    }
+
+    let paymentIntent: Stripe.PaymentIntent
+    let isUpdate: boolean = false
+
+    if (request.input('paymentIntentId') != null) {
+      paymentIntent = await stripeClient.paymentIntents.update(request.input('paymentIntentId'), {
+        amount: request.input('amount'),
+        currency: 'gbp',
+        metadata: {
+          fullName: request.input('form.fullName'),
+          emailAddress: request.input('form.emailAddress'),
+          contactNumber: request.input('form.contactNumber'),
+          ticketsRequired: request.input('form.ticketsRequired'),
+          orderType: 'halloween-2025',
+          giftAidOptedIn: 'true',
+        },
+      })
+
+      isUpdate = true
+    } else {
+      paymentIntent = await stripeClient.paymentIntents.create({
+        amount: request.input('amount'),
+        currency: 'gbp',
+        metadata: {
+          fullName: request.input('form.fullName'),
+          emailAddress: request.input('form.emailAddress'),
+          contactNumber: request.input('form.contactNumber'),
+          ticketsRequired: request.input('form.ticketsRequired'),
+          orderType: 'halloween-2025',
+          giftAidOptedIn: 'true',
+        },
+      })
+    }
+
+    return response.ok({
+      status: 'OK',
+      code: 200,
+      paymentIntent,
+      isUpdate,
+    })
+  }
+
   /**
    * Check current ticket availability for Footy Talk Keegan event
    * GET endpoint to check availability without creating payment intent
@@ -772,6 +830,69 @@ export default class StripeController {
         individual: individualAvailability
       }
     })
+  }
+
+  public async checkHalloween2025AvailabilityEndpoint({ request, response }: HttpContextContract) {
+    const quantity = request.param('quantity', 1)
+
+    const availability = await this.checkHalloween2025Availability(quantity)
+
+    return response.ok({
+      status: 'OK',
+      code: 200,
+      availability,
+    })
+  }
+
+  public async checkHalloween2025Availability(orderQuantity: number) {
+    const Database = (await import('@ioc:Adonis/Lucid/Database')).default
+
+    const LIMIT = 300
+
+    try {
+      const result = await Database
+        .from('halloween_2025')
+        .sum('no_of_tickets as total')
+
+      let currentCount = parseInt(result[0].total)
+
+      if (isNaN(currentCount)) {
+        currentCount = 0
+      }
+
+      const remaining = LIMIT - currentCount
+
+      if (remaining <= 0) {
+        return {
+          available: false,
+          message: `Sorry, all tickets have been sold out`,
+          remaining: 0,
+        }
+      }
+
+      if (remaining < orderQuantity) {
+        return {
+          available: false,
+          message: `Only ${remaining} ticket${remaining === 1 ? '' : 's'} remaining`,
+          remaining,
+        }
+      }
+
+      return {
+        available: true,
+        message: `${remaining} ticket${remaining === 1 ? '' : 's'} remaining`,
+        remaining,
+      }
+
+    } catch (error) {
+      console.error('Error checking ticket availability:', error)
+      // In case of database error, allow the purchase to proceed to avoid blocking sales
+      return {
+        available: true,
+        message: 'Unable to verify ticket availability, proceeding with purchase',
+        remaining: -1
+      }
+    }
   }
 
   /**

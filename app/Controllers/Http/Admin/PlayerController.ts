@@ -165,14 +165,17 @@ export default class PlayerController {
     }
 
     try {
-      // Get players with their transactions in a single optimized query
+      const stripeClient = new Stripe(Env.get('STRIPE_API_SECRET', null), {
+        apiVersion: Env.get('STRIPE_API_VERSION'),
+      })
+
+      // Get players with their basic info and relationships
       const players = await Database
         .from('players')
         .leftJoin('parents', 'players.parent_id', 'parents.id')
         .leftJoin('users', 'parents.user_id', 'users.id')
         .leftJoin('user_permissions', 'users.id', 'user_permissions.user_id')
         .leftJoin('permissions', 'user_permissions.permission_id', 'permissions.id')
-        .leftJoin('stripe_transactions', 'players.id', 'stripe_transactions.player_id')
         .select(
           'players.*',
           'parents.first_name as parent_first_name',
@@ -180,52 +183,70 @@ export default class PlayerController {
           'parents.email as parent_email',
           'users.id as user_id',
           'users.stripe_customer_id as stripe_customer_id',
-          'permissions.name as permission_name',
-          'stripe_transactions.type as transaction_type',
-          'stripe_transactions.status as transaction_status',
-          'stripe_transactions.stripe_id as transaction_stripe_id'
+          'permissions.name as permission_name'
         )
         .where('players.team', request.input('team'))
         .orWhere('players.second_team', request.input('team'))
         .orderBy('players.first_name', 'asc')
 
-      // Group data by player
+      // Group data by player and collect permissions
       const playerMap = new Map()
-
       for (const row of players) {
         if (!playerMap.has(row.id)) {
           playerMap.set(row.id, {
             ...row,
-            permissions: [],
-            transactions: []
+            permissions: []
           })
         }
 
         const player = playerMap.get(row.id)
-
-        // Add permission if not already added
         if (row.permission_name && !player.permissions.includes(row.permission_name)) {
           player.permissions.push(row.permission_name)
         }
-
-        // Add transaction if exists
-        if (row.transaction_type) {
-          player.transactions.push({
-            type: row.transaction_type,
-            status: row.transaction_status,
-            stripeId: row.transaction_stripe_id
-          })
-        }
       }
 
-      const formattedPlayers = Array.from(playerMap.values()).map(player => {
+      // Calculate the season months (July to May)
+      const now = new Date()
+      const currentMonth = now.getMonth() + 1 // 1-12
+      const currentYear = now.getFullYear()
+
+      // Determine season year based on current month
+      let seasonStartYear = currentYear
+      if (currentMonth >= 1 && currentMonth <= 5) {
+        seasonStartYear = currentYear - 1 // We're in Jan-May, so season started previous year
+      }
+
+      // Generate season months array (July to May)
+      const seasonMonths: Array<{
+        month: number;
+        year: number;
+        name: string;
+        key: string;
+      }> = []
+
+      for (let i = 0; i < 11; i++) {
+        const monthIndex = (6 + i) % 12 // July = 6, wraps to May = 4
+        const year = monthIndex >= 6 ? seasonStartYear : seasonStartYear + 1
+        seasonMonths.push({
+          month: monthIndex + 1, // Convert to 1-12
+          year: year,
+          name: new Date(year, monthIndex, 1).toLocaleString('default', { month: 'long' }),
+          key: `${year}-${String(monthIndex + 1).padStart(2, '0')}`
+        })
+      }
+
+      const formattedPlayers: any[] = []
+
+      for (const player of Array.from(playerMap.values())) {
         const isCoach = player.permissions.includes('coach')
+        const playerRegistrationDate = new Date(player.created_at)
 
         let paymentInfo = {
           isCoach,
           upfrontFeePaid: false,
           registrationFeePaid: false,
           subscriptionUpToDate: false,
+          monthlyPayments: [] as any[],
           notes: null as string | null,
         }
 
@@ -235,35 +256,203 @@ export default class PlayerController {
           paymentInfo.registrationFeePaid = true
           paymentInfo.subscriptionUpToDate = true
         } else if (player.membership_fee_option === 'upfront') {
-          // Check for successful upfront payment
-          const upfrontTransaction = player.transactions.find(t =>
-            t.type === 'upfront_payment' && t.status === 'succeeded'
-          )
-          paymentInfo.upfrontFeePaid = !!upfrontTransaction
-        } else if (player.membership_fee_option === 'subscription') {
-          // Check for successful registration fee
-          const registrationTransaction = player.transactions.find(t =>
-            t.type === 'registration_fee' && t.status === 'succeeded'
-          )
-          paymentInfo.registrationFeePaid = !!registrationTransaction
+          // Query Stripe for upfront payment status
+          if (player.stripe_customer_id && player.stripe_upfront_payment_id) {
+            try {
+              const paymentIntent = await stripeClient.paymentIntents.retrieve(player.stripe_upfront_payment_id, {
+                expand: ['charges']
+              })
+              paymentInfo.upfrontFeePaid = paymentIntent.status === 'succeeded'
 
-          // Check subscription status
-          const subscriptionTransaction = player.transactions.find(t =>
-            t.type === 'subscription'
-          )
-
-          if (subscriptionTransaction) {
-            if (subscriptionTransaction.status === 'active' || subscriptionTransaction.status === 'trialing') {
-              paymentInfo.subscriptionUpToDate = true
-            } else {
-              paymentInfo.notes = `Subscription ${subscriptionTransaction.status}`
+              // Check for refunds
+              const paymentIntentData = paymentIntent as any
+              if (paymentIntentData.charges?.data?.length > 0) {
+                const charge = paymentIntentData.charges.data[0]
+                if (charge.refunded) {
+                  paymentInfo.notes = `Partially refunded: £${(charge.amount_refunded / 100).toFixed(2)} of £${(charge.amount / 100).toFixed(2)}`
+                }
+              }
+            } catch (error) {
+              console.error(`Error fetching upfront payment for player ${player.id}:`, error)
+              paymentInfo.notes = 'Error fetching payment status'
             }
-          } else {
-            paymentInfo.notes = 'No subscription found'
+          }
+        } else if (player.membership_fee_option === 'subscription') {
+          // Handle subscription-based payments with month-by-month view
+          if (player.stripe_customer_id) {
+            try {
+              // Get the subscription
+              let subscription: Stripe.Subscription | null = null
+              if (player.stripe_subscription_id) {
+                try {
+                  subscription = await stripeClient.subscriptions.retrieve(player.stripe_subscription_id)
+                } catch (error) {
+                  console.error(`Error fetching subscription ${player.stripe_subscription_id}:`, error)
+                }
+              }
+
+              // Get all invoices for this customer
+              const invoices = await stripeClient.invoices.list({
+                customer: player.stripe_customer_id,
+                limit: 100
+              })
+
+              // Get all payment intents for registration fees
+              const paymentIntents = await stripeClient.paymentIntents.list({
+                customer: player.stripe_customer_id,
+                limit: 100,
+                expand: ['data.charges']
+              })
+
+              // Check registration fee
+              const registrationPayment = paymentIntents.data.find(pi =>
+                pi.id === player.stripe_registration_fee_id
+              )
+              if (registrationPayment) {
+                paymentInfo.registrationFeePaid = registrationPayment.status === 'succeeded'
+              }
+
+              // Process month-by-month payments
+              for (const seasonMonth of seasonMonths) {
+                const monthKey = seasonMonth.key
+                const monthStart = new Date(seasonMonth.year, seasonMonth.month - 1, 1)
+                const monthEnd = new Date(seasonMonth.year, seasonMonth.month, 0, 23, 59, 59)
+
+                // Check if player was registered before this month
+                if (playerRegistrationDate > monthEnd) {
+                  paymentInfo.monthlyPayments.push({
+                    month: seasonMonth.name,
+                    year: seasonMonth.year,
+                    monthKey: monthKey,
+                    status: 'N/A',
+                    reason: 'Player not yet registered',
+                    amount: null,
+                    refunded: null
+                  })
+                  continue
+                }
+
+                // Find invoice for this month
+                const monthInvoice = invoices.data.find(invoice => {
+                  const invoiceDate = new Date(invoice.created * 1000)
+                  return invoiceDate >= monthStart && invoiceDate <= monthEnd
+                })
+
+                if (monthInvoice) {
+                  let status = 'failed'
+                  let reason = 'Unknown'
+
+                  switch (monthInvoice.status) {
+                    case 'paid':
+                      status = 'paid'
+                      reason = 'Payment successful'
+                      break
+                    case 'open':
+                      // Check if payment is due yet
+                      const dueDate = new Date(monthInvoice.due_date! * 1000)
+                      const today = new Date()
+                      if (today < dueDate) {
+                        status = 'pending'
+                        reason = `Payment due ${dueDate.toLocaleDateString()}`
+                      } else {
+                        status = 'overdue'
+                        reason = `Payment overdue since ${dueDate.toLocaleDateString()}`
+                      }
+                      break
+                    case 'uncollectible':
+                      status = 'failed'
+                      reason = 'Payment uncollectible'
+                      break
+                    case 'void':
+                      status = 'void'
+                      reason = 'Invoice voided'
+                      break
+                    default:
+                      status = 'failed'
+                      reason = `Invoice status: ${monthInvoice.status}`
+                  }
+
+                  // Check for refunds
+                  let refundedAmount = 0
+                  const invoiceData = monthInvoice as any
+                  if (invoiceData.charge) {
+                    try {
+                      const charge = await stripeClient.charges.retrieve(invoiceData.charge as string)
+                      refundedAmount = charge.amount_refunded
+                    } catch (error) {
+                      // Ignore charge fetch errors
+                    }
+                  }
+
+                  paymentInfo.monthlyPayments.push({
+                    month: seasonMonth.name,
+                    year: seasonMonth.year,
+                    monthKey: monthKey,
+                    status: status,
+                    reason: reason,
+                    amount: monthInvoice.amount_paid / 100,
+                    originalAmount: monthInvoice.total / 100,
+                    refunded: refundedAmount > 0 ? refundedAmount / 100 : null,
+                    invoiceId: monthInvoice.id,
+                    dueDate: monthInvoice.due_date ? new Date(monthInvoice.due_date * 1000) : null
+                  })
+                } else {
+                  // No invoice found for this month
+                  const isFirstMonth = playerRegistrationDate >= monthStart && playerRegistrationDate <= monthEnd
+
+                  if (isFirstMonth && registrationPayment) {
+                    // This is the registration month, show registration payment status
+                    let refundedAmount = 0
+                    const registrationData = registrationPayment as any
+                    if (registrationData.charges?.data?.length > 0) {
+                      const charge = registrationData.charges.data[0]
+                      refundedAmount = charge.amount_refunded
+                    }
+
+                    paymentInfo.monthlyPayments.push({
+                      month: seasonMonth.name,
+                      year: seasonMonth.year,
+                      monthKey: monthKey,
+                      status: registrationPayment.status === 'succeeded' ? 'paid' : 'failed',
+                      reason: registrationPayment.status === 'succeeded' ? 'Registration fee (includes first month)' : 'Registration payment failed',
+                      amount: registrationPayment.status === 'succeeded' ? registrationPayment.amount / 100 : 0,
+                      originalAmount: registrationPayment.amount / 100,
+                      refunded: refundedAmount > 0 ? refundedAmount / 100 : null,
+                      paymentIntentId: registrationPayment.id
+                    })
+                  } else {
+                    // Missing invoice for a month where payment should exist
+                    paymentInfo.monthlyPayments.push({
+                      month: seasonMonth.name,
+                      year: seasonMonth.year,
+                      monthKey: monthKey,
+                      status: 'missing',
+                      reason: 'No invoice found for this month',
+                      amount: null,
+                      refunded: null
+                    })
+                  }
+                }
+              }
+
+              // Overall subscription status
+              if (subscription) {
+                paymentInfo.subscriptionUpToDate = ['active', 'trialing'].includes(subscription.status)
+                if (!paymentInfo.subscriptionUpToDate) {
+                  paymentInfo.notes = `Subscription ${subscription.status}`
+                }
+              } else {
+                paymentInfo.notes = 'No active subscription found'
+              }
+
+            } catch (error) {
+              console.error(`Error fetching subscription data for player ${player.id}:`, error)
+              paymentInfo.notes = 'Error fetching subscription status'
+            }
           }
         }
 
-        return {
+        formattedPlayers.push({
           id: player.id,
           createdAt: player.created_at,
           firstName: player.first_name,
@@ -287,17 +476,31 @@ export default class PlayerController {
             email: player.parent_email,
             userId: player.user_id,
           },
-        }
-      })
+        })
+      }
 
       return response.ok({
         status: 'OK',
         code: 200,
-        data: formattedPlayers,
+        data: {
+          players: formattedPlayers,
+          seasonMonths: seasonMonths,
+          seasonInfo: {
+            startYear: seasonStartYear,
+            endYear: seasonStartYear + 1,
+            currentMonth: currentMonth,
+            currentYear: currentYear
+          }
+        },
       })
     } catch (error) {
-      console.log(error)
-      return response.internalServerError()
+      console.error('Error in getSubsStatusForTeam:', error)
+      return response.internalServerError({
+        status: 'ERROR',
+        code: 500,
+        message: 'Internal server error',
+        error: error.message
+      })
     }
   }
 

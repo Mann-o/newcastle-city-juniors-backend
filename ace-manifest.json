@@ -172,6 +172,18 @@
       "aliases": [],
       "flags": []
     },
+    "test:season-months": {
+      "settings": {
+        "loadApp": true,
+        "stayAlive": false
+      },
+      "commandPath": "./commands/TestSeasonMonths",
+      "commandName": "test:season-months",
+      "description": "Test the season months calculation for the subscription status",
+      "args": [],
+      "aliases": [],
+      "flags": []
+    },
     "dump:rcfile": {
       "settings": {},
       "commandPath": "@adonisjs/core/build/commands/DumpRc",
